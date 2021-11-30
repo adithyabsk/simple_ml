@@ -5,8 +5,17 @@ import needle as ndl
 from needle import backend_ndarray as nd
 
 
-_DEVICES = [nd.cpu(), pytest.param(nd.cuda(), 
-    marks=pytest.mark.skipif(not nd.cuda().enabled(), reason="No GPU"))]
+_DEVICES = [
+  nd.cpu(),
+  pytest.param(
+    nd.cuda(), 
+    marks=pytest.mark.skipif(not nd.cuda().enabled(), reason="No GPU")
+  ),
+  pytest.param(
+    nd.opencl(), 
+    marks=pytest.mark.skipif(not nd.opencl().enabled(), reason="No OpenCL")
+  )
+]
 
 
 def compare_strides(a_np, a_nd):
@@ -25,13 +34,9 @@ def test_simple_opencl():
   A = nd.array(_A, device=nd.opencl())
   print(A)
   print(A.numpy())
+  A.fill(1.)
+  print(A)
   raise ValueError()
-  # import pdb; pdb.set_trace()
-  # lhs = nd_fn(A).compact()
-  # assert lhs.is_compact(), "array is not compact"
-
-  # rhs = np_fn(_A)
-  # np.testing.assert_allclose(lhs.numpy(), rhs, atol=1e-5, rtol=1e-5)
 
 
 
@@ -78,13 +83,14 @@ def test_simple_opencl():
      "nd_fn": lambda X: X.permute((1, 0))[3:7,2:5]
     },   
 ], ids=["transpose", "broadcast_to", "reshape1", "reshape2", "reshape3", "getitem1", "getitem2", "transposegetitem"])
-@pytest.mark.parametrize("device", _DEVICES, ids=["cpu", "cuda"])
+@pytest.mark.parametrize("device", _DEVICES, ids=["cpu", "cuda", "opencl"])
 def test_compact(params, device):
     shape, np_fn, nd_fn = params['shape'], params['np_fn'], params['nd_fn']
     _A = np.random.randint(low=0, high=10, size=shape)
     A = nd.array(_A, device=device)
     
-    lhs = nd_fn(A).compact()
+    lhs = nd_fn(A)
+    lhs = lhs.compact()  # TODO make this a single line later
     assert lhs.is_compact(), "array is not compact"
 
     rhs = np_fn(_A)
@@ -97,7 +103,7 @@ reduce_params = [
     {"dims": (4, 5, 6), "axis": 1},
     {"dims": (4, 5, 6), "axis": 2}
 ]
-@pytest.mark.parametrize("device", _DEVICES, ids=["cpu", "cuda"])
+@pytest.mark.parametrize("device", _DEVICES, ids=["cpu", "cuda", "opencl"])
 @pytest.mark.parametrize("params", reduce_params)
 def test_reduce_sum(params, device):
     dims, axis = params['dims'], params['axis']
@@ -106,7 +112,7 @@ def test_reduce_sum(params, device):
     np.testing.assert_allclose(_A.sum(axis=axis, keepdims=True), A.sum(axis=axis).numpy(), atol=1e-5, rtol=1e-5)
 
 
-@pytest.mark.parametrize("device", _DEVICES, ids=["cpu", "cuda"])
+@pytest.mark.parametrize("device", _DEVICES, ids=["cpu", "cuda", "opencl"])
 @pytest.mark.parametrize("params", reduce_params)
 def test_reduce_max(params, device):
     dims, axis = params['dims'], params['axis']
@@ -140,7 +146,7 @@ ShapeAndSlices = lambda *shape: _ShapeAndSlices(np.ones(shape))
         "rhs": ShapeAndSlices(7, 7, 7)[:2, :3, :4]
     },   
 ])
-@pytest.mark.parametrize("device", _DEVICES, ids=["cpu", "cuda"])
+@pytest.mark.parametrize("device", _DEVICES, ids=["cpu", "cuda", "opencl"])
 def test_setitem_ewise(params, device):
     lhs_shape, lhs_slices = params['lhs']
     rhs_shape, rhs_slices = params['rhs']
@@ -164,7 +170,7 @@ def test_setitem_ewise(params, device):
     ShapeAndSlices(4, 5, 6)[:4,  2:5, 3],
     ShapeAndSlices(4, 5, 6)[1::2, 2:5, ::2],
 ])
-@pytest.mark.parametrize("device", _DEVICES, ids=["cpu", "cuda"]) 
+@pytest.mark.parametrize("device", _DEVICES, ids=["cpu", "cuda", "opencl"]) 
 def test_setitem_scalar(params, device):
     shape, slices = params
     _A = np.random.randn(*shape)
@@ -217,7 +223,7 @@ OP_NAMES = [k for k in OPS]
 ewise_shapes = [(1, 1, 1), (4, 5, 6)]
 @pytest.mark.parametrize("fn", OP_FNS, ids=OP_NAMES)
 @pytest.mark.parametrize("shape", ewise_shapes)
-@pytest.mark.parametrize("device", _DEVICES, ids=["cpu", "cuda"])
+@pytest.mark.parametrize("device", _DEVICES, ids=["cpu", "cuda", "opencl"])
 def test_ewise_fn(fn, shape, device):
     _A = np.random.randn(*shape)
     _B = np.random.randn(*shape)
@@ -227,7 +233,7 @@ def test_ewise_fn(fn, shape, device):
 
 
 @pytest.mark.parametrize("shape", ewise_shapes)
-@pytest.mark.parametrize("device", _DEVICES, ids=["cpu", "cuda"])
+@pytest.mark.parametrize("device", _DEVICES, ids=["cpu", "cuda", "opencl"])
 def test_ewise_max(shape, device):
     _A = np.random.randn(*shape)
     _B = np.random.randn(*shape)
@@ -242,7 +248,7 @@ permute_params = [
     {"dims": (4, 5, 6), "axes": (2, 1, 0)},
 ]
 @pytest.mark.parametrize("params", permute_params)
-@pytest.mark.parametrize("device", _DEVICES, ids=["cpu", "cuda"])
+@pytest.mark.parametrize("device", _DEVICES, ids=["cpu", "cuda", "opencl"])
 def test_permute(device, params):
     dims = params['dims']
     axes = params['axes']
@@ -252,7 +258,10 @@ def test_permute(device, params):
     rhs = A.permute(axes)
     np.testing.assert_allclose(lhs, rhs.numpy(), atol=1e-5, rtol=1e-5)
     compare_strides(lhs, rhs)
-    check_same_memory(A, rhs)
+    if "opencl" not in str(device):
+      # NOTE: OpenCL does not allow for raw pointer access of device memory
+      #       so this check cannot be performed
+      check_same_memory(A, rhs)
 
 
 reshape_params = [
@@ -260,7 +269,7 @@ reshape_params = [
     {"shape": (8, 16), "new_shape": (8, 4, 2, 2)},
 ]
 @pytest.mark.parametrize("params", reshape_params)
-@pytest.mark.parametrize("device", _DEVICES, ids=["cpu", "cuda"])
+@pytest.mark.parametrize("device", _DEVICES, ids=["cpu", "cuda", "opencl"])
 def test_reshape(device, params):
     shape = params['shape']
     new_shape = params['new_shape']
@@ -270,7 +279,10 @@ def test_reshape(device, params):
     rhs = A.reshape(new_shape)
     np.testing.assert_allclose(lhs, rhs.numpy(), atol=1e-5, rtol=1e-5)
     compare_strides(lhs, rhs)
-    check_same_memory(A, rhs)
+    if "opencl" not in str(device):
+      # NOTE: OpenCL does not allow for raw pointer access of device memory
+      #       so this check cannot be performed
+      check_same_memory(A, rhs)
 
 
 getitem_params = [
@@ -280,7 +292,7 @@ getitem_params = [
     {"shape": (8, 16), "fn": lambda X: X[1:4, 3:4]},
 ]
 @pytest.mark.parametrize("params", getitem_params)
-@pytest.mark.parametrize("device", _DEVICES, ids=["cpu", "cuda"])
+@pytest.mark.parametrize("device", _DEVICES, ids=["cpu", "cuda", "opencl"])
 def test_getitem(device, params):
     shape = params['shape']
     fn = params['fn']
@@ -288,16 +300,20 @@ def test_getitem(device, params):
     A = nd.array(_A, device=device)
     lhs = fn(_A)
     rhs = fn(A)
+    rhs.numpy()
     np.testing.assert_allclose(lhs, rhs.numpy(), atol=1e-5, rtol=1e-5)
     compare_strides(lhs, rhs)
-    check_same_memory(A, rhs)
+    if "opencl" not in str(device):
+      # NOTE: OpenCL does not allow for raw pointer access of device memory
+      #       so this check cannot be performed
+      check_same_memory(A, rhs)
 
 
 broadcast_params = [
     {"from_shape": (1, 3, 4), "to_shape": (6, 3, 4)},
 ]
 @pytest.mark.parametrize("params", broadcast_params)
-@pytest.mark.parametrize("device", _DEVICES, ids=["cpu", "cuda"])
+@pytest.mark.parametrize("device", _DEVICES, ids=["cpu", "cuda", "opencl"])
 def test_broadcast_to(device, params):
     from_shape, to_shape = params['from_shape'], params['to_shape']
     _A = np.random.randn(*from_shape)
@@ -306,7 +322,10 @@ def test_broadcast_to(device, params):
     rhs = A.broadcast_to(to_shape)
     np.testing.assert_allclose(lhs, rhs.numpy(), atol=1e-5, rtol=1e-5)
     compare_strides(lhs, rhs)
-    check_same_memory(A, rhs)
+    if "opencl" not in str(device):
+      # NOTE: OpenCL does not allow for raw pointer access of device memory
+      #       so this check cannot be performed
+      check_same_memory(A, rhs)
 
 
 matmul_dims = [
@@ -320,7 +339,7 @@ matmul_dims = [
     (72, 73, 74), 
     (74, 73, 72), 
     (128, 128, 128)]
-@pytest.mark.parametrize("device", _DEVICES, ids=["cpu", "cuda"])
+@pytest.mark.parametrize("device", _DEVICES, ids=["cpu", "cuda", "opencl"])
 @pytest.mark.parametrize("m,n,p", matmul_dims)
 def test_matmul(m, n, p, device):
     # np.random.seed(0) # TODO: REMOVE ME
@@ -331,21 +350,21 @@ def test_matmul(m, n, p, device):
     np.testing.assert_allclose((A @ B).numpy(), _A @ _B, rtol=1e-5, atol=1e-5)
 
 
-@pytest.mark.parametrize("device", _DEVICES, ids=["cpu", "cuda"])
+@pytest.mark.parametrize("device", _DEVICES, ids=["cpu", "cuda", "opencl"])
 def test_scalar_mul(device):
     A = np.random.randn(5, 5)
     B = nd.array(A, device=device)
     np.testing.assert_allclose(A * 5., (B * 5.).numpy(), atol=1e-5, rtol=1e-5)
 
 
-@pytest.mark.parametrize("device", _DEVICES, ids=["cpu", "cuda"])
+@pytest.mark.parametrize("device", _DEVICES, ids=["cpu", "cuda", "opencl"])
 def test_scalar_div(device):
     A = np.random.randn(5, 5)
     B = nd.array(A, device=device)
     np.testing.assert_allclose(A / 5., (B / 5.).numpy(), atol=1e-5, rtol=1e-5)
 
 
-@pytest.mark.parametrize("device", _DEVICES, ids=["cpu", "cuda"])
+@pytest.mark.parametrize("device", _DEVICES, ids=["cpu", "cuda", "opencl"])
 def test_scalar_power(device):
     A = np.random.randn(5, 5)
     B = nd.array(A, device=device)
@@ -353,7 +372,7 @@ def test_scalar_power(device):
     np.testing.assert_allclose(np.power(A, 0.5), (B**0.5).numpy(), atol=1e-5, rtol=1e-5)
 
 
-@pytest.mark.parametrize("device", _DEVICES, ids=["cpu", "cuda"])
+@pytest.mark.parametrize("device", _DEVICES, ids=["cpu", "cuda", "opencl"])
 def test_scalar_maximum(device):
     A = np.random.randn(5, 5)
     B = nd.array(A, device=device)
@@ -363,7 +382,7 @@ def test_scalar_maximum(device):
     np.testing.assert_allclose(np.maximum(A, C), (B.maximum(C)).numpy(), atol=1e-5, rtol=1e-5)
 
 
-@pytest.mark.parametrize("device", _DEVICES, ids=["cpu", "cuda"])
+@pytest.mark.parametrize("device", _DEVICES, ids=["cpu", "cuda", "opencl"])
 def test_scalar_eq(device):
     A = np.random.randn(5, 5)
     B = nd.array(A, device=device)
@@ -371,7 +390,7 @@ def test_scalar_eq(device):
     np.testing.assert_allclose(A == C, (B == C).numpy(), atol=1e-5, rtol=1e-5)
 
 
-@pytest.mark.parametrize("device", _DEVICES, ids=["cpu", "cuda"])
+@pytest.mark.parametrize("device", _DEVICES, ids=["cpu", "cuda", "opencl"])
 def test_scalar_ge(device):
     A = np.random.randn(5, 5)
     B = nd.array(A, device=device)
@@ -379,21 +398,21 @@ def test_scalar_ge(device):
     np.testing.assert_allclose(A >= C, (B >= C).numpy(), atol=1e-5, rtol=1e-5)
 
 
-@pytest.mark.parametrize("device", _DEVICES, ids=["cpu", "cuda"])
+@pytest.mark.parametrize("device", _DEVICES, ids=["cpu", "cuda", "opencl"])
 def test_ewise_log(device):
     A = np.abs(np.random.randn(5, 5))
     B = nd.array(A, device=device)
     np.testing.assert_allclose(np.log(A), (B.log()).numpy(), atol=1e-5, rtol=1e-5)
 
 
-@pytest.mark.parametrize("device", _DEVICES, ids=["cpu", "cuda"])
+@pytest.mark.parametrize("device", _DEVICES, ids=["cpu", "cuda", "opencl"])
 def test_ewise_exp(device):
     A = np.random.randn(5, 5)
     B = nd.array(A, device=device)
     np.testing.assert_allclose(np.exp(A), (B.exp()).numpy(), atol=1e-5, rtol=1e-5)
 
 
-@pytest.mark.parametrize("device", _DEVICES, ids=["cpu", "cuda"])
+@pytest.mark.parametrize("device", _DEVICES, ids=["cpu", "cuda", "opencl"])
 def test_ewise_tanh(device):
     A = np.random.randn(5, 5)
     B = nd.array(A, device=device)

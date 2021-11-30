@@ -1,5 +1,4 @@
-// #include <CL/cl2.hpp>
-// #include <CL/cl.h>
+#define __CL_ENABLE_EXCEPTIONS
 #include <CL/cl.hpp>
 // Note: macos has a different opencl location
 #include <pybind11/numpy.h>
@@ -11,7 +10,6 @@
 #include <stdexcept>
 #include <numeric>
 #include <string>
-
 
 std::string GetOpenCLErrorName(cl_int errorCode)
 {
@@ -179,12 +177,37 @@ int find_devices() {
     return n; // return number of available devices
 }
 
+void debug_kernel_build(std::string source) {
+  // call this function in the module space at the bottom and pass the kernel
+  // string code into it to debug.
+  // Note: the moment nd.opencl() is called anywhere in the test code, the
+  //       runs which means we need to comment out nd.opencl() in the _DEVICES
+  //       definition to be able to test the kernel building.
+  const cl::Program program(source);
+  try {
+    program.build();
+  } catch (cl::Error err) {
+    std::string logs;
+    program.getBuildInfo(cl::Device::getDefault(), CL_PROGRAM_BUILD_LOG, &logs);
+    std::cerr 
+        << "ERROR: "
+        << err.what()
+        << "("
+        << GetOpenCLErrorInfo(err.err())
+        << "), "
+        << "("
+        << logs
+        << ")"
+        << std::endl;
+    throw std::runtime_error(GetOpenCLErrorInfo(err.err()));
+  }
+}
+
 namespace needle {
 namespace opencl {
 
-#define ALIGNMENT 256
+#define BASE_THREAD_NUM 256
 #define TILE 8
-// #define TILE 2  // TODO: REMOVE ME
 typedef float scalar_t;
 const size_t ELEM_SIZE = sizeof(scalar_t);
 
@@ -197,7 +220,7 @@ const size_t ELEM_SIZE = sizeof(scalar_t);
 struct OpenCLArray {
   OpenCLArray(const size_t size) {
     cl_int status_code;
-    this->mem = new cl::Buffer(
+    this->mem = cl::Buffer(
       cl::Context::getDefault(),
       CL_MEM_READ_WRITE,
       size * ELEM_SIZE,
@@ -209,100 +232,133 @@ struct OpenCLArray {
     }
     this->size = size;
   }
-  ~OpenCLArray() { delete(mem); }
-  cl::Buffer* mem;
+  // ~OpenCLArray() { delete(mem); }
+  cl::Buffer mem;
   size_t size;
 };
 
+struct OpenCLDims {
+  OpenCLDims(const size_t size) {
+    this->global = cl::NDRange(BASE_THREAD_NUM, 1, 1);
+    this->local = cl::NDRange((size + BASE_THREAD_NUM - 1) / BASE_THREAD_NUM, 1, 1);
+  }
+  cl::NDRange global;
+  cl::NDRange local;
+};
+
+#define MAX_VEC_SIZE 8
+struct OpenCLVec {
+  unsigned int size;
+  unsigned int data[MAX_VEC_SIZE];
+};
+
+OpenCLVec VecToOpenCL(const std::vector<uint32_t>& x) {
+  OpenCLVec shape;
+  if (x.size() > MAX_VEC_SIZE) throw std::runtime_error("Exceeded OpenCL supported max dimesions");
+  shape.size = (unsigned int)x.size();
+  for (size_t i = 0; i < x.size(); i++) {
+    shape.data[i] = (unsigned int)x[i];
+  }
+  return shape;
+}
+
+
+// // Alternative fill implementation that is likely faster to the functor
+// // approach I took the below approach to learn how to set up and debug OpenCL
+// // KernelFunctors since it would be much easier to get fill working, it would
+// // be interesting to benchmark these two approaches against each other.
 // void Fill(OpenCLArray* out, scalar_t val) {
 //   /**
 //    * Fill the values of an aligned array with val
 //    */
-//   for (int i = 0; i < out->size; i++) {
-//     out->ptr[i] = val;
+//   cl_int queue_status;
+//   cl::CommandQueue queue = cl::CommandQueue::getDefault(&queue_status);
+//   if (queue_status != CL_SUCCESS) {
+//     throw std::runtime_error(GetOpenCLErrorInfo(queue_status));
 //   }
-// }
-
-/*
-template <typename T>
-void PrintVector(std::vector<T> &vec) {
-    std::cout << "[ ";
-    for (int i = 0; i < vec.size(); i++) {
-      std::cout << vec.at(i) << ' ';
-    }
-    std::cout << " ]" << std::endl;
-}
-
-void PrintAlignedArray(const AlignedArray& a) {
-    std::cout << "[ ";
-    for (size_t i = 0; i < a.size; i++) {
-      std::cout << a.ptr[i] << ' ';
-    }
-    std::cout << " ]" << std::endl;
-}
-
-void PrintFloatArray(const float* arr, size_t rows, size_t cols) {
-    std::cout << "[ ";
-    for(size_t i=0; i < rows; i++) {
-      if(i != 0) {
-        std::cout << "  ";
-      }
-      std::cout<<"[ ";
-      for(size_t j=0; j<cols; j++) {
-        std::cout << arr[i*cols+j] << " ";
-      }
-      std::cout << " ]";
-      if (i != (rows-1)) {
-        std::cout << std::endl;
-      }
-    }
-    std::cout << " ]" << std::endl;
-}
-*/
-
-// void Compact(const OpenCLArray& a, OpenCLArray* out, std::vector<uint32_t> shape,
-//              std::vector<uint32_t> strides, size_t offset) {
-//   /**
-//    * Compact an array in memory
-//    *
-//    * Args:
-//    *   a: non-compact represntation of the array, given as input
-//    *   out: compact version of the array to be written
-//    *   shape: shapes of each dimension for a and out
-//    *   strides: strides of the *a* array (not out, which has compact strides)
-//    *   offset: offset of the *a* array (not out, which has zero offset, being compact)
-//    *
-//    * Returns:
-//    *  void (you need to modify out directly, rather than returning anything; this is true for all the
-//    *  function will implement here, so we won't repeat this note.)
-//    */
-//   /// BEGIN YOUR SOLUTION
-//   std::vector<uint32_t> counters(shape.size(), 0);
-//   auto cnt = 0;
-//   auto max_count = std::accumulate(
-//     shape.begin(), shape.end(), 1, std::multiplies<uint32_t>()
+//   cl_int fill_status = queue.enqueueFillBuffer(
+//     *(out->mem),
+//     val,
+//     0,
+//     out->size * ELEM_SIZE,
+//     NULL
 //   );
-//   while (cnt < max_count) {
-//     auto prod = std::inner_product(
-//       counters.begin(), counters.end(), strides.begin(), 0
-//     );
-//     out->ptr[cnt++] = a.ptr[offset + prod];
-
-//     // Update the counters
-//     auto increment = true;
-//     for(int i = counters.size()-1; i >=0; i--){
-//       if (increment) {
-//         if (++counters[i] == shape[i]) {
-//           counters.at(i) = 0;
-//           increment = true;
-//         } else {
-//           increment = false;
-//         }
-//       }
-//     }
+//   if (fill_status != CL_SUCCESS) {
+//     throw std::runtime_error(GetOpenCLErrorInfo(fill_status));
 //   }
-//   /// END YOUR SOLUTION
 // }
+
+std::string fill_source =
+"__kernel void fill(__global float* out, float val, unsigned int size) {"
+"  size_t gid = get_global_id(0);"
+"  if (gid < size) out[gid] = val;"
+"}";
+const cl::Program fill_program(fill_source, true);
+auto fill = cl::make_kernel<cl::Buffer, float, unsigned int>(
+  fill_program, "fill"
+);
+void Fill(OpenCLArray* out, float val) {
+  OpenCLDims dims(out->size);
+  cl::EnqueueArgs eargs(dims.global, dims.local);
+  fill(eargs, out->mem, val, (unsigned int)out->size).wait();
+}
+
+std::string compact_source =
+"__kernel void compact(__global float* a, __global float* out, unsigned int size,"
+"                      __constant unsigned int* shape, unsigned int shape_size,"
+"                      __constant unsigned int* strides, unsigned int strides_size,"
+"                      unsigned int offset) {"
+"  size_t gid = get_global_id(0);"
+// shape_prod is not set to size in the case of
+// offset, size is just the full size of the output array
+// ALSO: you cannot have comments in kernel string code
+"  size_t shape_prod = 1;"
+"  for (size_t i=0; i<shape_size; i++) {"
+"    shape_prod*=shape[i];"
+"  }"
+"  size_t prod = shape_prod;"
+"  if (gid < shape_prod) {"
+"    size_t a_idx = offset;"
+"    size_t remainder = gid;"
+"    for(size_t j=0; j<shape_size; j++){"
+"      prod /= shape[j];"
+"      a_idx+=(remainder/prod)*strides[j];"
+"      remainder %= prod;"
+"    }"
+"    out[gid] = a[a_idx];"
+"  }"
+"}";
+const cl::Program compact_program(compact_source, true);
+auto compact = cl::make_kernel<
+  cl::Buffer, cl::Buffer, unsigned int,
+  unsigned int*, unsigned int,
+  unsigned int*, unsigned int,
+  unsigned int
+>(compact_program, "compact");
+void Compact(OpenCLArray* a, OpenCLArray* out, std::vector<uint32_t> shape, 
+              std::vector<uint32_t> strides, size_t offset) {
+  OpenCLDims dims(out->size);
+  OpenCLVec shape_cl = VecToOpenCL(shape);
+  OpenCLVec stride_cl = VecToOpenCL(strides);
+  cl::EnqueueArgs eargs(dims.global, dims.local);
+  try {
+    compact(
+      eargs, a->mem, out->mem, (unsigned int)out->size,
+      shape_cl.data, shape_cl.size,
+      stride_cl.data, stride_cl.size,
+      (unsigned int)offset
+    ).wait();
+  } catch (cl::Error err) {
+    std::cerr 
+        << "ERROR: "
+        << err.what()
+        << "("
+        << GetOpenCLErrorInfo(err.err())
+        << ")"
+        << std::endl;
+    throw std::runtime_error(GetOpenCLErrorInfo(err.err()));
+  }
+}
 
 // void EwiseSetitem(const OpenCLArray& a, OpenCLArray* out, std::vector<uint32_t> shape,
 //                   std::vector<uint32_t> strides, size_t offset) {
@@ -676,6 +732,25 @@ void EwiseTanh(const AlignedArray& a, AlignedArray* out) {
 //   /// END YOUR SOLUTION
 // }
 
+
+// // Simple setup to debug a Kernel argument definition
+// cl::Kernel kernel_fill=cl::Kernel(fill_program, "fill");
+// kernel_fill.setArg(0, *(out->mem));
+// kernel_fill.setArg(1, val);
+// kernel_fill.setArg(2, (unsigned int)out->size);
+// try {
+//   queue.enqueueNDRangeKernel(kernel_fill, cl::NullRange, dims.global, dims.local);
+//   queue.finish();
+// } catch (cl::Error err) {
+//   std::cerr 
+//       << "ERROR: "
+//       << err.what()
+//       << "("
+//       << GetOpenCLErrorInfo(err.err())
+//       << ")"
+//       << std::endl;
+//   throw std::runtime_error(GetOpenCLErrorInfo(err.err()));
+// }
 }  // namespace opencl
 }  // namespace needle
 
@@ -689,7 +764,6 @@ PYBIND11_MODULE(ndarray_backend_opencl, m) {
 
   py::class_<OpenCLArray>(m, "Array")
       .def(py::init<size_t>(), py::return_value_policy::take_ownership)
-      // .def("ptr", &OpenCLArray::ptr_as_int)
       .def_readonly("size", &OpenCLArray::size);
 
   // return numpy array, copying from CPU
@@ -697,19 +771,37 @@ PYBIND11_MODULE(ndarray_backend_opencl, m) {
                        size_t offset) {
     std::vector<size_t> numpy_strides = strides;
     std::transform(numpy_strides.begin(), numpy_strides.end(), numpy_strides.begin(),
-                   [](size_t& c) { return c * ELEM_SIZE; });
+                   [](size_t& c) { return c * sizeof(float); });
     
     // copy memory to host
     scalar_t* host_ptr = (scalar_t*)std::malloc(a.size * ELEM_SIZE);
-    cl_int status_code = cl::CommandQueue::getDefault().enqueueReadBuffer(
-      *(a.mem),
-      CL_TRUE,  // blocking
-      offset,
-      a.size * ELEM_SIZE,
-      host_ptr
-    );
-    if (status_code != CL_SUCCESS)
-      throw std::runtime_error(GetOpenCLErrorInfo(status_code));
+    if (host_ptr == 0) throw std::bad_alloc();
+    try {
+      cl_int status_code = cl::CommandQueue::getDefault().enqueueReadBuffer(
+        a.mem,
+        CL_TRUE,  // blocking
+        0,
+        a.size * ELEM_SIZE,
+        host_ptr
+      );
+    } catch (cl::Error err) {
+      std::cerr 
+          << "ERROR: "
+          << err.what()
+          << "("
+          << GetOpenCLErrorInfo(err.err())
+          << ")"
+          << std::endl;
+      throw std::runtime_error(GetOpenCLErrorInfo(err.err()));
+    }
+
+    // if (status_code != CL_SUCCESS) {
+    //   std::cout << "Entered" << std::endl;
+    //   std::cerr 
+    //       << GetOpenCLErrorInfo(status_code)
+    //       << std::endl;
+    //   throw std::runtime_error(GetOpenCLErrorInfo(status_code));
+    // }
 
     // return numpy array
     // https://stackoverflow.com/a/19283829/3262054
@@ -727,7 +819,7 @@ PYBIND11_MODULE(ndarray_backend_opencl, m) {
     }
 
     cl_int status_code = queue.enqueueWriteBuffer(
-      *(out->mem),
+      out->mem,
       CL_TRUE,  // blocking
       0,
       out->size * ELEM_SIZE,
@@ -738,8 +830,10 @@ PYBIND11_MODULE(ndarray_backend_opencl, m) {
     }
   });
 
-  // m.def("fill", Fill);
-  // m.def("compact", Compact);
+  // debug_kernel_build(compact_source);
+
+  m.def("fill", Fill);
+  m.def("compact", Compact);
   // m.def("ewise_setitem", EwiseSetitem);
   // m.def("scalar_setitem", ScalarSetitem);
   // m.def("ewise_add", EwiseAdd);

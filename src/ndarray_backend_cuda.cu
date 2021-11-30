@@ -11,7 +11,7 @@ namespace cuda {
 
 #define BASE_THREAD_NUM 256
 
-#define TILE 4
+#define TILE 8
 typedef float scalar_t;
 const size_t ELEM_SIZE = sizeof(scalar_t);
 

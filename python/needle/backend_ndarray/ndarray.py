@@ -44,8 +44,7 @@ def opencl():
         from . import ndarray_backend_opencl
         return BackendDevice("opencl", ndarray_backend_opencl)
     except ImportError:
-        raise ValueError("Failed to import opencl")
-        # return BackendDevice("opencl", None)
+        return BackendDevice("opencl", None)
 
 
 def numpy_device():
