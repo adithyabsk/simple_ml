@@ -221,7 +221,6 @@ struct OpenCLArray {
   OpenCLArray(const size_t size) {
     cl_int status_code;
     this->mem = cl::Buffer(
-      cl::Context::getDefault(),
       CL_MEM_READ_WRITE,
       size * ELEM_SIZE,
       NULL,
@@ -232,7 +231,21 @@ struct OpenCLArray {
     }
     this->size = size;
   }
-  // ~OpenCLArray() { delete(mem); }
+  OpenCLArray(const std::vector<uint32_t>& x) {
+    std::vector<float> floatVec(x.begin(), x.end());
+    cl_int status_code;
+    this->mem = cl::Buffer(
+      floatVec.begin(),
+      floatVec.end(),
+      true, // read only
+      NULL,
+      &status_code
+    );
+    if (status_code != CL_SUCCESS) {
+      throw std::runtime_error(GetOpenCLErrorInfo(status_code));
+    }
+    this->size = x.size();
+  }
   cl::Buffer mem;
   size_t size;
 };
@@ -305,8 +318,8 @@ void Fill(OpenCLArray* out, float val) {
 
 std::string compact_source =
 "__kernel void compact(__global float* a, __global float* out, unsigned int size,"
-"                      __constant unsigned int* shape, unsigned int shape_size,"
-"                      __constant unsigned int* strides, unsigned int strides_size,"
+"                      __global const float* shape, unsigned int shape_size,"
+"                      __global const float* strides, unsigned int strides_size,"
 "                      unsigned int offset) {"
 "  size_t gid = get_global_id(0);"
 // shape_prod is not set to size in the case of
@@ -331,21 +344,21 @@ std::string compact_source =
 const cl::Program compact_program(compact_source, true);
 auto compact = cl::make_kernel<
   cl::Buffer, cl::Buffer, unsigned int,
-  unsigned int*, unsigned int,
-  unsigned int*, unsigned int,
+  const cl::Buffer, unsigned int,
+  const cl::Buffer, unsigned int,
   unsigned int
 >(compact_program, "compact");
 void Compact(OpenCLArray* a, OpenCLArray* out, std::vector<uint32_t> shape, 
               std::vector<uint32_t> strides, size_t offset) {
   OpenCLDims dims(out->size);
-  OpenCLVec shape_cl = VecToOpenCL(shape);
-  OpenCLVec stride_cl = VecToOpenCL(strides);
+  const OpenCLArray shape_cl(shape);
+  const OpenCLArray stride_cl(strides);
   cl::EnqueueArgs eargs(dims.global, dims.local);
   try {
     compact(
-      eargs, a->mem, out->mem, (unsigned int)out->size,
-      shape_cl.data, shape_cl.size,
-      stride_cl.data, stride_cl.size,
+      eargs, a->mem, out->mem, (unsigned int)(out->size),
+      shape_cl.mem, (unsigned int)(shape_cl.size),
+      stride_cl.mem, (unsigned int)(stride_cl.size),
       (unsigned int)offset
     ).wait();
   } catch (cl::Error err) {
