@@ -373,86 +373,119 @@ void Compact(OpenCLArray* a, OpenCLArray* out, std::vector<uint32_t> shape,
   }
 }
 
-// void EwiseSetitem(const OpenCLArray& a, OpenCLArray* out, std::vector<uint32_t> shape,
-//                   std::vector<uint32_t> strides, size_t offset) {
-//   /**
-//    * Set items in a (non-compact) array
-//    *
-//    * Args:
-//    *   a: _compact_ array whose items will be written to out
-//    *   out: non-compact array whose items are to be written
-//    *   shape: shapes of each dimension for a and out
-//    *   strides: strides of the *out* array (not a, which has compact strides)
-//    *   offset: offset of the *out* array (not a, which has zero offset, being compact)
-//    */
-//   /// BEGIN YOUR SOLUTION
-//   std::vector<uint32_t> counters(shape.size(), 0);
-//   auto cnt = 0;
-//   auto max_count = std::accumulate(
-//     shape.begin(), shape.end(), 1, std::multiplies<uint32_t>()
-//   );
-//   while (cnt < max_count) {
-//     auto prod = std::inner_product(
-//       counters.begin(), counters.end(), strides.begin(), 0
-//     );
-//     out->ptr[offset + prod] = a.ptr[cnt++];
+std::string ewisesetitem_source =
+"__kernel void ewisesetitem(__global float* a, __global float* out, unsigned int size,"
+"                      __global const float* shape, unsigned int shape_size,"
+"                      __global const float* strides, unsigned int strides_size,"
+"                      unsigned int offset) {"
+"  size_t gid = get_global_id(0);"
+// shape_prod is not set to size in the case of
+// offset, size is just the full size of the output array
+// ALSO: you cannot have comments in kernel string code
+"  size_t shape_prod = 1;"
+"  for (size_t i=0; i<shape_size; i++) {"
+"    shape_prod*=shape[i];"
+"  }"
+"  size_t prod = shape_prod;"
+"  if (gid < shape_prod) {"
+"    size_t a_idx = offset;"
+"    size_t remainder = gid;"
+"    for(size_t j=0; j<shape_size; j++){"
+"      prod /= shape[j];"
+"      a_idx+=(remainder/prod)*strides[j];"
+"      remainder %= prod;"
+"    }"
+"    out[a_idx] = a[gid];"
+"  }"
+"}";
+const cl::Program ewisesetitem_program(ewisesetitem_source, true);
+auto ewisesetitem = cl::make_kernel<
+  cl::Buffer, cl::Buffer, unsigned int,
+  const cl::Buffer, unsigned int,
+  const cl::Buffer, unsigned int,
+  unsigned int
+>(ewisesetitem_program, "ewisesetitem");
+void EwiseSetitem(OpenCLArray* a, OpenCLArray* out, std::vector<uint32_t> shape, 
+              std::vector<uint32_t> strides, size_t offset) {
+  OpenCLDims dims(out->size);
+  const OpenCLArray shape_cl(shape);
+  const OpenCLArray stride_cl(strides);
+  cl::EnqueueArgs eargs(dims.global, dims.local);
+  try {
+    ewisesetitem(
+      eargs, a->mem, out->mem, (unsigned int)(out->size),
+      shape_cl.mem, (unsigned int)(shape_cl.size),
+      stride_cl.mem, (unsigned int)(stride_cl.size),
+      (unsigned int)offset
+    ).wait();
+  } catch (cl::Error err) {
+    std::cerr 
+        << "ERROR: "
+        << err.what()
+        << "("
+        << GetOpenCLErrorInfo(err.err())
+        << ")"
+        << std::endl;
+    throw std::runtime_error(GetOpenCLErrorInfo(err.err()));
+  }
+}
 
-//     // Update the counters
-//     auto increment = true;
-//     for(int i = counters.size()-1; i >=0; i--){
-//       if (increment) {
-//         if (++counters[i] == shape[i]) {
-//           counters.at(i) = 0;
-//           increment = true;
-//         } else {
-//           increment = false;
-//         }
-//       }
-//     }
-//   }
-//   /// END YOUR SOLUTION
-// }
-
-// void ScalarSetitem(const size_t size, scalar_t val, OpenCLArray* out, std::vector<uint32_t> shape,
-//                    std::vector<uint32_t> strides, size_t offset) {
-//   /**
-//    * Set items is a (non-compact) array
-//    *
-//    * Args:
-//    *   size: number of elements to write in out array (note that this will note be the same as
-//    *         out.size, because out is a non-compact subset array);  it _will_ be the same as the
-//    *         product of items in shape, but covenient to just pass it here.
-//    *   val: scalar value to write to
-//    *   out: non-compact array whose items are to be written
-//    *   shape: shapes of each dimension of out
-//    *   strides: strides of the out array
-//    *   offset: offset of the out array
-//    */
-
-//   /// BEGIN YOUR SOLUTION
-//   std::vector<uint32_t> counters(shape.size(), 0);
-//   auto cnt = 0;
-//   while (cnt++ < size) {
-//     auto prod = std::inner_product(
-//       counters.begin(), counters.end(), strides.begin(), 0
-//     );
-//     out->ptr[offset + prod] = val;
-
-//     // Update the counters
-//     auto increment = true;
-//     for(int i = counters.size()-1; i >=0; i--){
-//       if (increment) {
-//         if (++counters[i] == shape[i]) {
-//           counters.at(i) = 0;
-//           increment = true;
-//         } else {
-//           increment = false;
-//         }
-//       }
-//     }
-//   }
-//   /// END YOUR SOLUTION
-// }
+std::string scalarsetitem_source =
+"__kernel void scalarsetitem(__global float* a, float val, unsigned int size,"
+"                      __global const float* shape, unsigned int shape_size,"
+"                      __global const float* strides, unsigned int strides_size,"
+"                      unsigned int offset) {"
+"  size_t gid = get_global_id(0);"
+// shape_prod is not set to size in the case of
+// offset, size is just the full size of the output array
+// ALSO: you cannot have comments in kernel string code
+"  size_t shape_prod = 1;"
+"  for (size_t i=0; i<shape_size; i++) {"
+"    shape_prod*=shape[i];"
+"  }"
+"  size_t prod = shape_prod;"
+"  if (gid < shape_prod) {"
+"    size_t a_idx = offset;"
+"    size_t remainder = gid;"
+"    for(size_t j=0; j<shape_size; j++){"
+"      prod /= shape[j];"
+"      a_idx+=(remainder/prod)*strides[j];"
+"      remainder %= prod;"
+"    }"
+"    a[a_idx] = val;"
+"  }"
+"}";
+const cl::Program scalarsetitem_program(scalarsetitem_source, true);
+auto scalarsetitem = cl::make_kernel<
+  cl::Buffer, float, unsigned int,
+  const cl::Buffer, unsigned int,
+  const cl::Buffer, unsigned int,
+  unsigned int
+>(scalarsetitem_program, "scalarsetitem");
+void ScalarSetitem(size_t size, scalar_t val, OpenCLArray* a, std::vector<uint32_t> shape, 
+              std::vector<uint32_t> strides, size_t offset) {
+  OpenCLDims dims(size);
+  const OpenCLArray shape_cl(shape);
+  const OpenCLArray stride_cl(strides);
+  cl::EnqueueArgs eargs(dims.global, dims.local);
+  try {
+    scalarsetitem(
+      eargs, a->mem, (float)val, (unsigned int)(size),
+      shape_cl.mem, (unsigned int)(shape_cl.size),
+      stride_cl.mem, (unsigned int)(stride_cl.size),
+      (unsigned int)offset
+    ).wait();
+  } catch (cl::Error err) {
+    std::cerr 
+        << "ERROR: "
+        << err.what()
+        << "("
+        << GetOpenCLErrorInfo(err.err())
+        << ")"
+        << std::endl;
+    throw std::runtime_error(GetOpenCLErrorInfo(err.err()));
+  }
+}
 
 
 std::string ewiseadd_source =
@@ -471,16 +504,6 @@ void EwiseAdd(OpenCLArray* a, OpenCLArray* b, OpenCLArray* out) {
 }
 
 
-// void EwiseAdd(const OpenCLArray& a, const OpenCLArray& b, OpenCLArray* out) {
-//   /**
-//    * Set entries in out to be the sum of correspondings entires in a and b.
-//    */
-//   for (size_t i = 0; i < a.size; i++) {
-//     out->ptr[i] = a.ptr[i] + b.ptr[i];
-//   }
-// }
-
-
 std::string scalaradd_source =
 "__kernel void scalaradd(__global float* a, float val, __global float* out, unsigned int size) {"
 "  size_t gid = get_global_id(0);"
@@ -495,16 +518,6 @@ void ScalarAdd(OpenCLArray* a, float val, OpenCLArray* out) {
   cl::EnqueueArgs eargs(dims.global, dims.local);
   scalaradd(eargs, a->mem, val, out->mem, (unsigned int)out->size).wait();
 }
-
-
-// void ScalarAdd(const OpenCLArray& a, scalar_t val, OpenCLArray* out) {
-//   /**
-//    * Set entries in out to be the sum of correspondings entry in a plus the scalar val.
-//    */
-//   for (size_t i = 0; i < a.size; i++) {
-//     out->ptr[i] = a.ptr[i] + val;
-//   }
-// }
 
 
 /**
@@ -946,8 +959,8 @@ PYBIND11_MODULE(ndarray_backend_opencl, m) {
 
   m.def("fill", Fill);
   m.def("compact", Compact);
-  // m.def("ewise_setitem", EwiseSetitem);
-  // m.def("scalar_setitem", ScalarSetitem);
+  m.def("ewise_setitem", EwiseSetitem);
+  m.def("scalar_setitem", ScalarSetitem);
   m.def("ewise_add", EwiseAdd);
   m.def("scalar_add", ScalarAdd);
 
