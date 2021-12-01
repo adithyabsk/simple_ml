@@ -74,8 +74,8 @@ std::string GetOpenCLErrorName(cl_int errorCode)
 	case CL_INVALID_COMPILER_OPTIONS:           return "CL_INVALID_COMPILER_OPTIONS";
 	case CL_INVALID_LINKER_OPTIONS:             return "CL_INVALID_LINKER_OPTIONS";
 	case CL_INVALID_DEVICE_PARTITION_COUNT:     return "CL_INVALID_DEVICE_PARTITION_COUNT";
-	case CL_INVALID_PIPE_SIZE:                  return "CL_INVALID_PIPE_SIZE";
-	case CL_INVALID_DEVICE_QUEUE:               return "CL_INVALID_DEVICE_QUEUE";
+	// case CL_INVALID_PIPE_SIZE:                  return "CL_INVALID_PIPE_SIZE";
+	// case CL_INVALID_DEVICE_QUEUE:               return "CL_INVALID_DEVICE_QUEUE";
 
 	default:
 		return "UNKNOWN ERROR CODE";
@@ -206,7 +206,7 @@ void debug_kernel_build(std::string source) {
 namespace needle {
 namespace opencl {
 
-#define BASE_THREAD_NUM 256
+// CL_DEVICE_MAX_WORK_GROUP_SIZE = 4100 
 #define TILE 8
 typedef float scalar_t;
 const size_t ELEM_SIZE = sizeof(scalar_t);
@@ -252,8 +252,8 @@ struct OpenCLArray {
 
 struct OpenCLDims {
   OpenCLDims(const size_t size) {
-    this->global = cl::NDRange(BASE_THREAD_NUM, 1, 1);
-    this->local = cl::NDRange((size + BASE_THREAD_NUM - 1) / BASE_THREAD_NUM, 1, 1);
+    this->global = cl::NDRange(CL_DEVICE_MAX_WORK_GROUP_SIZE, 1, 1);
+    this->local = cl::NDRange((size + CL_DEVICE_MAX_WORK_GROUP_SIZE - 1) / CL_DEVICE_MAX_WORK_GROUP_SIZE, 1, 1);
   }
   cl::NDRange global;
   cl::NDRange local;
@@ -500,7 +500,21 @@ auto ewiseadd = cl::make_kernel<cl::Buffer, cl::Buffer, cl::Buffer, unsigned int
 void EwiseAdd(OpenCLArray* a, OpenCLArray* b, OpenCLArray* out) {
   OpenCLDims dims(out->size);
   cl::EnqueueArgs eargs(dims.global, dims.local);
-  ewiseadd(eargs, a->mem, b->mem, out->mem, (unsigned int)out->size).wait();
+
+  std::cout << "Max: " << CL_DEVICE_MAX_WORK_GROUP_SIZE << std::endl;
+
+  try {
+    ewiseadd(eargs, a->mem, b->mem, out->mem, (unsigned int)out->size).wait();
+  } catch (cl::Error err) {
+    std::cerr 
+        << "ERROR: "
+        << err.what()
+        << "("
+        << GetOpenCLErrorInfo(err.err())
+        << ")"
+        << std::endl;
+    throw std::runtime_error(GetOpenCLErrorInfo(err.err()));
+  }
 }
 
 
@@ -919,6 +933,7 @@ PYBIND11_MODULE(ndarray_backend_opencl, m) {
           << std::endl;
       throw std::runtime_error(GetOpenCLErrorInfo(err.err()));
     }
+    
 
     // if (status_code != CL_SUCCESS) {
     //   std::cout << "Entered" << std::endl;
