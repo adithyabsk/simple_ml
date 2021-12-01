@@ -12,7 +12,8 @@ _DEVICES = [
     marks=pytest.mark.skipif(not nd.cuda().enabled(), reason="No GPU")
   ),
   pytest.param(
-    nd.opencl(), 
+    nd.opencl(),
+    # None, 
     marks=pytest.mark.skipif(not nd.opencl().enabled(), reason="No OpenCL")
   )
 ]

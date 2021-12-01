@@ -441,6 +441,23 @@ void Compact(OpenCLArray* a, OpenCLArray* out, std::vector<uint32_t> shape,
 //   /// END YOUR SOLUTION
 // }
 
+
+std::string ewiseadd_source =
+"__kernel void ewiseadd(__global float* a, __global float* b, __global float* out, unsigned int size) {"
+"  size_t gid = get_global_id(0);"
+"  if (gid < size) out[gid] = a[gid] + b[gid];"
+"}";
+const cl::Program ewiseadd_program(ewiseadd_source, true);
+auto ewiseadd = cl::make_kernel<cl::Buffer, cl::Buffer, cl::Buffer, unsigned int>(
+  ewiseadd_program, "ewiseadd"
+);
+void EwiseAdd(OpenCLArray* a, OpenCLArray* b, OpenCLArray* out) {
+  OpenCLDims dims(out->size);
+  cl::EnqueueArgs eargs(dims.global, dims.local);
+  ewiseadd(eargs, a->mem, b->mem, out->mem, (unsigned int)out->size).wait();
+}
+
+
 // void EwiseAdd(const OpenCLArray& a, const OpenCLArray& b, OpenCLArray* out) {
 //   /**
 //    * Set entries in out to be the sum of correspondings entires in a and b.
@@ -449,6 +466,23 @@ void Compact(OpenCLArray* a, OpenCLArray* out, std::vector<uint32_t> shape,
 //     out->ptr[i] = a.ptr[i] + b.ptr[i];
 //   }
 // }
+
+
+std::string scalaradd_source =
+"__kernel void scalaradd(__global float* a, float val, __global float* out, unsigned int size) {"
+"  size_t gid = get_global_id(0);"
+"  if (gid < size) out[gid] = a[gid] + val;"
+"}";
+const cl::Program scalaradd_program(scalaradd_source, true);
+auto scalaradd = cl::make_kernel<cl::Buffer, float, cl::Buffer, unsigned int>(
+  scalaradd_program, "scalaradd"
+);
+void ScalarAdd(OpenCLArray* a, float val, OpenCLArray* out) {
+  OpenCLDims dims(out->size);
+  cl::EnqueueArgs eargs(dims.global, dims.local);
+  scalaradd(eargs, a->mem, val, out->mem, (unsigned int)out->size).wait();
+}
+
 
 // void ScalarAdd(const OpenCLArray& a, scalar_t val, OpenCLArray* out) {
 //   /**
@@ -479,6 +513,71 @@ void Compact(OpenCLArray* a, OpenCLArray* out, std::vector<uint32_t> shape,
  * functions (however you want to do so, as long as the functions match the proper)
  * signatures above.
  */
+
+
+std::string ewisemul_source =
+"__kernel void ewisemul(__global float* a, __global float* b, __global float* out, unsigned int size) {"
+"  size_t gid = get_global_id(0);"
+"  if (gid < size) out[gid] = a[gid] * b[gid];"
+"}";
+const cl::Program ewisemul_program(ewisemul_source, true);
+auto ewisemul = cl::make_kernel<cl::Buffer, cl::Buffer, cl::Buffer, unsigned int>(
+  ewisemul_program, "ewisemul"
+);
+void EwiseMul(OpenCLArray* a, OpenCLArray* b, OpenCLArray* out) {
+  OpenCLDims dims(out->size);
+  cl::EnqueueArgs eargs(dims.global, dims.local);
+  ewisemul(eargs, a->mem, b->mem, out->mem, (unsigned int)out->size).wait();
+}
+
+
+std::string scalarmul_source =
+"__kernel void scalarmul(__global float* a, float val, __global float* out, unsigned int size) {"
+"  size_t gid = get_global_id(0);"
+"  if (gid < size) out[gid] = a[gid] * val;"
+"}";
+const cl::Program scalarmul_program(scalarmul_source, true);
+auto scalarmul = cl::make_kernel<cl::Buffer, float, cl::Buffer, unsigned int>(
+  scalarmul_program, "scalarmul"
+);
+void ScalarMul(OpenCLArray* a, float val, OpenCLArray* out) {
+  OpenCLDims dims(out->size);
+  cl::EnqueueArgs eargs(dims.global, dims.local);
+  scalarmul(eargs, a->mem, val, out->mem, (unsigned int)out->size).wait();
+}
+
+
+std::string ewisediv_source =
+"__kernel void ewisediv(__global float* a, __global float* b, __global float* out, unsigned int size) {"
+"  size_t gid = get_global_id(0);"
+"  if (gid < size) out[gid] = a[gid] / b[gid];"
+"}";
+const cl::Program ewisediv_program(ewisediv_source, true);
+auto ewisediv = cl::make_kernel<cl::Buffer, cl::Buffer, cl::Buffer, unsigned int>(
+  ewisediv_program, "ewisediv"
+);
+void EwiseDiv(OpenCLArray* a, OpenCLArray* b, OpenCLArray* out) {
+  OpenCLDims dims(out->size);
+  cl::EnqueueArgs eargs(dims.global, dims.local);
+  ewisediv(eargs, a->mem, b->mem, out->mem, (unsigned int)out->size).wait();
+}
+
+
+std::string scalardiv_source =
+"__kernel void scalardiv(__global float* a, float val, __global float* out, unsigned int size) {"
+"  size_t gid = get_global_id(0);"
+"  if (gid < size) out[gid] = a[gid] / val;"
+"}";
+const cl::Program scalardiv_program(scalardiv_source, true);
+auto scalardiv = cl::make_kernel<cl::Buffer, float, cl::Buffer, unsigned int>(
+  scalardiv_program, "scalardiv"
+);
+void ScalarDiv(OpenCLArray* a, float val, OpenCLArray* out) {
+  OpenCLDims dims(out->size);
+  cl::EnqueueArgs eargs(dims.global, dims.local);
+  scalardiv(eargs, a->mem, val, out->mem, (unsigned int)out->size).wait();
+}
+
 
 /// BEGIN YOUR SOLUTION
 /*
@@ -836,13 +935,13 @@ PYBIND11_MODULE(ndarray_backend_opencl, m) {
   m.def("compact", Compact);
   // m.def("ewise_setitem", EwiseSetitem);
   // m.def("scalar_setitem", ScalarSetitem);
-  // m.def("ewise_add", EwiseAdd);
-  // m.def("scalar_add", ScalarAdd);
+  m.def("ewise_add", EwiseAdd);
+  m.def("scalar_add", ScalarAdd);
 
-  // m.def("ewise_mul", EwiseMul);
-  // m.def("scalar_mul", ScalarMul);
-  // m.def("ewise_div", EwiseDiv);
-  // m.def("scalar_div", ScalarDiv);
+  m.def("ewise_mul", EwiseMul);
+  m.def("scalar_mul", ScalarMul);
+  m.def("ewise_div", EwiseDiv);
+  m.def("scalar_div", ScalarDiv);
   // m.def("scalar_power", ScalarPower);
   // //
   // m.def("ewise_maximum", EwiseMaximum);
