@@ -605,6 +605,70 @@ void ScalarDiv(OpenCLArray* a, float val, OpenCLArray* out) {
 }
 
 
+std::string scalarpower_source =
+"__kernel void scalarpower(__global float* a, float val, __global float* out, unsigned int size) {"
+"  size_t gid = get_global_id(0);"
+"  if (gid < size) out[gid] = pow(a[gid], val);"
+"}";
+const cl::Program scalarpower_program(scalarpower_source, true);
+auto scalarpower = cl::make_kernel<cl::Buffer, float, cl::Buffer, unsigned int>(
+  scalarpower_program, "scalarpower"
+);
+void ScalarPower(OpenCLArray* a, float val, OpenCLArray* out) {
+  OpenCLDims dims(out->size);
+  cl::EnqueueArgs eargs(dims.global, dims.local);
+  scalarpower(eargs, a->mem, val, out->mem, (unsigned int)out->size).wait();
+}
+
+
+std::string ewiselog_source =
+"__kernel void ewiselog(__global float* a, __global float* out, unsigned int size) {"
+"  size_t gid = get_global_id(0);"
+"  if (gid < size) out[gid] = log(a[gid]);"
+"}";
+const cl::Program ewiselog_program(ewiselog_source, true);
+auto ewiselog = cl::make_kernel<cl::Buffer, cl::Buffer, unsigned int>(
+  ewiselog_program, "ewiselog"
+);
+void EwiseLog(OpenCLArray* a, OpenCLArray* out) {
+  OpenCLDims dims(out->size);
+  cl::EnqueueArgs eargs(dims.global, dims.local);
+  ewiselog(eargs, a->mem, out->mem, (unsigned int)out->size).wait();
+}
+
+
+std::string ewiseexp_source =
+"__kernel void ewiseexp(__global float* a, __global float* out, unsigned int size) {"
+"  size_t gid = get_global_id(0);"
+"  if (gid < size) out[gid] = exp(a[gid]);"
+"}";
+const cl::Program ewiseexp_program(ewiseexp_source, true);
+auto ewiseexp = cl::make_kernel<cl::Buffer, cl::Buffer, unsigned int>(
+  ewiseexp_program, "ewiseexp"
+);
+void EwiseExp(OpenCLArray* a, OpenCLArray* out) {
+  OpenCLDims dims(out->size);
+  cl::EnqueueArgs eargs(dims.global, dims.local);
+  ewiseexp(eargs, a->mem, out->mem, (unsigned int)out->size).wait();
+}
+
+
+std::string ewisetanh_source =
+"__kernel void ewisetanh(__global float* a, __global float* out, unsigned int size) {"
+"  size_t gid = get_global_id(0);"
+"  if (gid < size) out[gid] = tanh(a[gid]);"
+"}";
+const cl::Program ewisetanh_program(ewisetanh_source, true);
+auto ewisetanh = cl::make_kernel<cl::Buffer, cl::Buffer, unsigned int>(
+  ewisetanh_program, "ewisetanh"
+);
+void EwiseTanh(OpenCLArray* a, OpenCLArray* out) {
+  OpenCLDims dims(out->size);
+  cl::EnqueueArgs eargs(dims.global, dims.local);
+  ewisetanh(eargs, a->mem, out->mem, (unsigned int)out->size).wait();
+}
+
+
 /// BEGIN YOUR SOLUTION
 /*
 void EwiseMul(const AlignedArray& a, const AlignedArray& b, AlignedArray* out) {
@@ -968,18 +1032,18 @@ PYBIND11_MODULE(ndarray_backend_opencl, m) {
   m.def("scalar_mul", ScalarMul);
   m.def("ewise_div", EwiseDiv);
   m.def("scalar_div", ScalarDiv);
-  // m.def("scalar_power", ScalarPower);
-  // //
+  m.def("scalar_power", ScalarPower);
+  
   // m.def("ewise_maximum", EwiseMaximum);
   // m.def("scalar_maximum", ScalarMaximum);
   // m.def("ewise_eq", EwiseEq);
   // m.def("scalar_eq", ScalarEq);
   // m.def("ewise_ge", EwiseGe);
   // m.def("scalar_ge", ScalarGe);
-  // //
-  // m.def("ewise_log", EwiseLog);
-  // m.def("ewise_exp", EwiseExp);
-  // m.def("ewise_tanh", EwiseTanh);
+  
+  m.def("ewise_log", EwiseLog);
+  m.def("ewise_exp", EwiseExp);
+  m.def("ewise_tanh", EwiseTanh);
 
   // m.def("matmul", Matmul);
   // m.def("matmul_tiled", MatmulTiled);
