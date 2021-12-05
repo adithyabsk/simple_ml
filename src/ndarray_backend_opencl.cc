@@ -250,10 +250,14 @@ struct OpenCLArray {
   size_t size;
 };
 
+#define MAX_THREAD_SIZE 256
+
 struct OpenCLDims {
   OpenCLDims(const size_t size) {
-    this->global = cl::NDRange(CL_DEVICE_MAX_WORK_GROUP_SIZE, 1, 1);
-    this->local = cl::NDRange((size + CL_DEVICE_MAX_WORK_GROUP_SIZE - 1) / CL_DEVICE_MAX_WORK_GROUP_SIZE, 1, 1);
+    // this->global = cl::NDRange(CL_DEVICE_MAX_WORK_GROUP_SIZE, 1, 1);
+    // this->local = cl::NDRange((size + CL_DEVICE_MAX_WORK_GROUP_SIZE - 1) / CL_DEVICE_MAX_WORK_GROUP_SIZE, 1, 1);
+    this->global = cl::NDRange(((size + MAX_THREAD_SIZE - 1) / MAX_THREAD_SIZE) * MAX_THREAD_SIZE, 1, 1);
+    this->local = cl::NDRange(MAX_THREAD_SIZE, 1, 1);
   }
   cl::NDRange global;
   cl::NDRange local;
