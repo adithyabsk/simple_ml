@@ -619,70 +619,6 @@ void ScalarDiv(OpenCLArray* a, float val, OpenCLArray* out) {
 }
 
 
-std::string scalarpower_source =
-"__kernel void scalarpower(__global float* a, float val, __global float* out, unsigned int size) {"
-"  size_t gid = get_global_id(0);"
-"  if (gid < size) out[gid] = pow(a[gid], val);"
-"}";
-const cl::Program scalarpower_program(scalarpower_source, true);
-auto scalarpower = cl::make_kernel<cl::Buffer, float, cl::Buffer, unsigned int>(
-  scalarpower_program, "scalarpower"
-);
-void ScalarPower(OpenCLArray* a, float val, OpenCLArray* out) {
-  OpenCLDims dims(out->size);
-  cl::EnqueueArgs eargs(dims.global, dims.local);
-  scalarpower(eargs, a->mem, val, out->mem, (unsigned int)out->size).wait();
-}
-
-
-std::string ewiselog_source =
-"__kernel void ewiselog(__global float* a, __global float* out, unsigned int size) {"
-"  size_t gid = get_global_id(0);"
-"  if (gid < size) out[gid] = log(a[gid]);"
-"}";
-const cl::Program ewiselog_program(ewiselog_source, true);
-auto ewiselog = cl::make_kernel<cl::Buffer, cl::Buffer, unsigned int>(
-  ewiselog_program, "ewiselog"
-);
-void EwiseLog(OpenCLArray* a, OpenCLArray* out) {
-  OpenCLDims dims(out->size);
-  cl::EnqueueArgs eargs(dims.global, dims.local);
-  ewiselog(eargs, a->mem, out->mem, (unsigned int)out->size).wait();
-}
-
-
-std::string ewiseexp_source =
-"__kernel void ewiseexp(__global float* a, __global float* out, unsigned int size) {"
-"  size_t gid = get_global_id(0);"
-"  if (gid < size) out[gid] = exp(a[gid]);"
-"}";
-const cl::Program ewiseexp_program(ewiseexp_source, true);
-auto ewiseexp = cl::make_kernel<cl::Buffer, cl::Buffer, unsigned int>(
-  ewiseexp_program, "ewiseexp"
-);
-void EwiseExp(OpenCLArray* a, OpenCLArray* out) {
-  OpenCLDims dims(out->size);
-  cl::EnqueueArgs eargs(dims.global, dims.local);
-  ewiseexp(eargs, a->mem, out->mem, (unsigned int)out->size).wait();
-}
-
-
-std::string ewisetanh_source =
-"__kernel void ewisetanh(__global float* a, __global float* out, unsigned int size) {"
-"  size_t gid = get_global_id(0);"
-"  if (gid < size) out[gid] = tanh(a[gid]);"
-"}";
-const cl::Program ewisetanh_program(ewisetanh_source, true);
-auto ewisetanh = cl::make_kernel<cl::Buffer, cl::Buffer, unsigned int>(
-  ewisetanh_program, "ewisetanh"
-);
-void EwiseTanh(OpenCLArray* a, OpenCLArray* out) {
-  OpenCLDims dims(out->size);
-  cl::EnqueueArgs eargs(dims.global, dims.local);
-  ewisetanh(eargs, a->mem, out->mem, (unsigned int)out->size).wait();
-}
-
-
 /// BEGIN YOUR SOLUTION
 /*
 void EwiseMul(const AlignedArray& a, const AlignedArray& b, AlignedArray* out) {
@@ -771,123 +707,40 @@ void EwiseTanh(const AlignedArray& a, AlignedArray* out) {
 */
 /// END YOUR SOLUTION
 
-// void Matmul(const AlignedArray& a, const AlignedArray& b, AlignedArray* out, uint32_t m, uint32_t n,
-//             uint32_t p) {
-//   /**
-//    * Multiply two (compact) matrices into an output (also comapct) matrix.  For this implementation
-//    * you can use the "naive" three-loop algorithm.
-//    *
-//    * Args:
-//    *   a: compact 2D array of size m x n
-//    *   b: comapct 2D array of size n x p
-//    *   out: compact 2D array of size m x p to write the output to
-//    *   m: rows of a / out
-//    *   n: columns of a / rows of b
-//    *   p: coolumns of b / out
-//    */
-
-//   /// BEGIN YOUR SOLUTION
-//   size_t cnt = 0;
-//   for(size_t i = 0; i < m; i++) {
-//     for(size_t j = 0; j < p; j++){
-//       float sum = 0.0;
-//       for(size_t offset = 0; offset < n; offset++) {
-//         sum += a.ptr[i*n + offset] * b.ptr[j + p*offset];
-//       }
-//       out->ptr[cnt++] = sum;
-//     }
-//   }
-//   /// END YOUR SOLUTION
-// }
-
-// inline void AlignedDot(const float* __restrict__ a,
-//                        const float* __restrict__ b,
-//                        float* __restrict__ out) {
-
-//   /**
-//    * Multiply together two TILE x TILE matrices, and _add _the result to out (it is important to add
-//    * the result to the existing out, which you should not set to zero beforehand).  We are including
-//    * the compiler flags here that enable the compile to properly use vector operators to implement
-//    * this function.  Specifically, the __restrict__ keyword indicates to the compile that a, b, and
-//    * out don't have any overlapping memory (which is necessary in order for vector operations to be
-//    * equivalent to their non-vectorized counterparts (imagine what could happen otherwise if a, b,
-//    * and out had overlapping memory).  Similarly the __builtin_assume_aligned keyword tells the
-//    * compiler that the input array siwll be aligned to the appropriate blocks in memory, which also
-//    * helps the compiler vectorize the code.
-//    *
-//    * Args:
-//    *   a: compact 2D array of size TILE x TILE
-//    *   b: compact 2D array of size TILE x TILE
-//    *   out: compact 2D array of size TILE x TILE to write to
-//    */
-
-//   a = (const float*)__builtin_assume_aligned(a, TILE * ELEM_SIZE);
-//   b = (const float*)__builtin_assume_aligned(b, TILE * ELEM_SIZE);
-//   out = (float*)__builtin_assume_aligned(out, TILE * ELEM_SIZE);
-
-//   // PrintFloatArray(a, TILE, TILE);
-//   // PrintFloatArray(b, TILE, TILE);
-
-//   /// BEGIN YOUR SOLUTION
-//   size_t cnt = 0;
-//   for(size_t i = 0; i < TILE; i++) {
-//     for(size_t j = 0; j < TILE; j++){
-//       float sum = 0.0;
-//       for(size_t offset = 0; offset < TILE; offset++) {
-//         // a[i*n + offset] * b[j + p*offset]
-//         sum += a[i*TILE + offset] * b[j + TILE*offset];
-//       }
-//       out[cnt++] += sum;
-//     }
-//   }
-//   // PrintFloatArray(out, TILE, TILE);
-//   // std::cout << std::endl;
-//   /// END YOUR SOLUTION
-// }
-
-// void MatmulTiled(const AlignedArray& a, const AlignedArray& b, AlignedArray* out, uint32_t m,
-//                  uint32_t n, uint32_t p) {
-//   /**
-//    * Matrix multiplication on tiled representations of array.  In this setting, a, b, and out
-//    * are all *4D* compact arrays of the appropriate size, e.g. a is an array of size
-//    *   a[m/TILE][n/TILE][TILE][TILE]
-//    * You should do the multiplication tile-by-tile to improve performance of the array (i.e., this
-//    * function should call `AlignedDot()` implemented above).
-//    *
-//    * Note that this function will only be called when m, n, p are all multiples of TILE, so you can
-//    * assume that this division happens without any remainder.
-//    *
-//    * Args:
-//    *   a: compact 4D array of size m/TILE x n/TILE x TILE x TILE
-//    *   b: compact 4D array of size n/TILE x p/TILE x TILE x TILE
-//    *   out: compact 4D array of size m/TILE x p/TILE x TILE x TILE to write to
-//    *   m: rows of a / out
-//    *   n: columns of a / rows of b
-//    *   p: columns of b / out
-//    *
-//    */
-//   /// BEGIN YOUR SOLUTION
-//   size_t cnt = 0;
-//   Fill(out, 0);
-//   for(size_t i = 0; i < m/TILE; i++) {
-//     for(size_t j = 0; j < p/TILE; j++){
-//       for(size_t offset = 0; offset < n/TILE; offset++) {
-//         // a[i*n + offset] * b[j + p*offset]
-//         // std::cout<<i<<"*"<<n<<"*"<<TILE<<"+"<<offset<<"*"<<TILE<<"*"<<TILE<<std::endl;
-//         // std::cout<<j<<"*"<<TILE<<"*"<<TILE<<"+"<<p<<"*"<<offset<<"*"<<TILE<<std::endl;
-//         AlignedDot(
-//           // i*(n/TILE)*TILE*TILE+offset*TILE*TILE
-//           &(a.ptr[i*n*TILE+offset*TILE*TILE]),
-//           // j + (p/TILE)*(offset*TILE^2)
-//           &(b.ptr[j*TILE*TILE+p*offset*TILE]),
-//           &(out->ptr[cnt])
-//         );
-//       }
-//       cnt+=TILE*TILE;
-//     }
-//   }
-//   /// END YOUR SOLUTION
-// }
+std::string matmul_source =
+"__kernel void matmul(__global float* a, __global float* b,"
+"                     __global float* out, unsigned int size, unsigned int M,"
+"                     unsigned int N, unsigned int P) {"
+"  size_t gid = get_global_id(0);"
+// Naieve implementation
+"  size_t prod = size;"
+"  if (gid < size) {"
+"    size_t remainder = gid;"
+"    prod /= M;"
+"    size_t row = remainder/prod;"
+"    remainder %= prod;"
+"    prod /= P;"
+"    size_t column = remainder/prod;"
+"    float sum = 0;"
+"    for(size_t i=0; i < N; i++) {"
+"      sum += a[row*N + i] * b[column + P*i];"
+"    }"
+"    out[gid] = sum;"
+"  }"
+"}";
+const cl::Program matmul_program(matmul_source, true);
+auto matmul = cl::make_kernel<cl::Buffer, cl::Buffer, cl::Buffer, unsigned int,
+                              unsigned int, unsigned int, unsigned int>(
+  matmul_program, "matmul"
+);
+void Matmul(OpenCLArray* a, OpenCLArray* b, OpenCLArray* out, unsigned int M,
+            unsigned int N, unsigned int P) {
+  OpenCLDims dims(out->size);
+  cl::EnqueueArgs eargs(dims.global, dims.local);
+  matmul(
+    eargs, a->mem, b->mem, out->mem, (unsigned int)out->size, M, N, P
+  ).wait();
+}
 
 // void ReduceMax(const AlignedArray& a, AlignedArray* out, size_t reduce_size) {
 //   /**
@@ -1034,7 +887,7 @@ PYBIND11_MODULE(ndarray_backend_opencl, m) {
     }
   });
 
-  // debug_kernel_build(compact_source);
+//   debug_kernel_build(matmul_source);
 
   m.def("fill", Fill);
   m.def("compact", Compact);
@@ -1047,21 +900,20 @@ PYBIND11_MODULE(ndarray_backend_opencl, m) {
   m.def("scalar_mul", ScalarMul);
   m.def("ewise_div", EwiseDiv);
   m.def("scalar_div", ScalarDiv);
-  m.def("scalar_power", ScalarPower);
-  
+  // m.def("scalar_power", ScalarPower);
+  // //
   // m.def("ewise_maximum", EwiseMaximum);
   // m.def("scalar_maximum", ScalarMaximum);
   // m.def("ewise_eq", EwiseEq);
   // m.def("scalar_eq", ScalarEq);
   // m.def("ewise_ge", EwiseGe);
   // m.def("scalar_ge", ScalarGe);
-  
-  m.def("ewise_log", EwiseLog);
-  m.def("ewise_exp", EwiseExp);
-  m.def("ewise_tanh", EwiseTanh);
+  // //
+  // m.def("ewise_log", EwiseLog);
+  // m.def("ewise_exp", EwiseExp);
+  // m.def("ewise_tanh", EwiseTanh);
 
-  // m.def("matmul", Matmul);
-  // m.def("matmul_tiled", MatmulTiled);
+  m.def("matmul", Matmul);
 
   // m.def("reduce_max", ReduceMax);
   // m.def("reduce_sum", ReduceSum);
