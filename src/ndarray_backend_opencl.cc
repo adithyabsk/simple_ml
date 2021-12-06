@@ -856,7 +856,7 @@ std::string reducesum_source =
 "  }"
 "}";
 const cl::Program reducesum_program(reducesum_source, true);
-auto reducesum = cl::make_kernel<cl::Buffer, cl::Buffer, unsigned int, size_t>(
+auto reducesum = cl::make_kernel<cl::Buffer, cl::Buffer, unsigned int, unsigned int>(
   reducesum_program, "reducesum"
 );
 void ReduceSum(OpenCLArray* a, OpenCLArray* out, unsigned int reduce_size) {
