@@ -29,19 +29,20 @@ def check_same_memory(original, view):
 
 # Custom opencl tests
 def test_simple_opencl():
-  A = nd.array(np.random.randn(2049), device=nd.opencl())
-  B = nd.array(np.random.randn(2049), device=nd.opencl())
-  print(A+B)
-  print(A.shape)
-  # shape, np_fn, nd_fn = (4, 4), lambda X: X.transpose(), lambda X: X.permute((1, 0))
-  # _A = np.random.randint(low=0, high=10, size=shape)
-  # print(_A)
-  # A = nd.array(_A, device=nd.opencl())
-  # print(A)
-  # print(A.numpy())
-  # A.fill(1.)
-  # print(A)
-  raise ValueError()
+    nd.opencl()
+#   A = nd.array(np.random.randn(2049), device=nd.opencl())
+#   B = nd.array(np.random.randn(2049), device=nd.opencl())
+#   print(A+B)
+#   print(A.shape)
+    # shape, np_fn, nd_fn = (4, 4), lambda X: X.transpose(), lambda X: X.permute((1, 0))
+    # _A = np.random.randint(low=0, high=10, size=shape)
+    # print(_A)
+    # A = nd.array(_A, device=nd.opencl())
+    # print(A)
+    # print(A.numpy())
+    # A.fill(1.)
+    # print(A)
+    raise ValueError()
 
 
 
@@ -266,6 +267,7 @@ def test_permute(device, params):
     if "opencl" not in str(device):
       # NOTE: OpenCL does not allow for raw pointer access of device memory
       #       so this check cannot be performed
+      import pdb; pdb.set_trace()
       check_same_memory(A, rhs)
 
 

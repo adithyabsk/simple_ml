@@ -559,6 +559,7 @@ void ScalarAdd(OpenCLArray* a, float val, OpenCLArray* out) {
  */
 
 
+/// BEGIN YOUR SOLUTION
 std::string ewisemul_source =
 "__kernel void ewisemul(__global float* a, __global float* b, __global float* out, unsigned int size) {"
 "  size_t gid = get_global_id(0);"
@@ -623,92 +624,164 @@ void ScalarDiv(OpenCLArray* a, float val, OpenCLArray* out) {
 }
 
 
-/// BEGIN YOUR SOLUTION
-/*
-void EwiseMul(const AlignedArray& a, const AlignedArray& b, AlignedArray* out) {
-  for (size_t i = 0; i < a.size; i++) {
-    out->ptr[i] = a.ptr[i] * b.ptr[i];
-  }
+std::string scalarpower_source =
+"__kernel void scalarpower(__global float* a, float val, __global float* out, unsigned int size) {"
+"  size_t gid = get_global_id(0);"
+"  if (gid < size) out[gid] = pow(a[gid], val);"
+"}";
+const cl::Program scalarpower_program(scalarpower_source, true);
+auto scalarpower = cl::make_kernel<cl::Buffer, float, cl::Buffer, unsigned int>(
+  scalarpower_program, "scalarpower"
+);
+void ScalarPower(OpenCLArray* a, float val, OpenCLArray* out) {
+  OpenCLDims dims(out->size);
+  cl::EnqueueArgs eargs(dims.global, dims.local);
+  scalarpower(eargs, a->mem, val, out->mem, (unsigned int)out->size).wait();
 }
 
-void ScalarMul(const AlignedArray& a, scalar_t val, AlignedArray* out) {
-  for (size_t i = 0; i < a.size; i++) {
-    out->ptr[i] = a.ptr[i] * val;
-  }
+
+std::string ewisemaximum_source =
+"__kernel void ewisemaximum(__global float* a, __global float* b, __global float* out, unsigned int size) {"
+"  size_t gid = get_global_id(0);"
+"  if (gid < size) out[gid] = max(a[gid], b[gid]);"
+"}";
+const cl::Program ewisemaximum_program(ewisemaximum_source, true);
+auto ewisemaximum = cl::make_kernel<cl::Buffer, cl::Buffer, cl::Buffer, unsigned int>(
+  ewisemaximum_program, "ewisemaximum"
+);
+void EwiseMaximum(OpenCLArray* a, OpenCLArray* b, OpenCLArray* out) {
+  OpenCLDims dims(out->size);
+  cl::EnqueueArgs eargs(dims.global, dims.local);
+  ewisemaximum(eargs, a->mem, b->mem, out->mem, (unsigned int)out->size).wait();
 }
 
-void EwiseDiv(const AlignedArray& a, const AlignedArray& b, AlignedArray* out) {
-  for (size_t i = 0; i < a.size; i++) {
-    out->ptr[i] = a.ptr[i] / b.ptr[i];
-  }
+
+std::string scalarmaximum_source =
+"__kernel void scalarmaximum(__global float* a, float val, __global float* out, unsigned int size) {"
+"  size_t gid = get_global_id(0);"
+"  if (gid < size) out[gid] = max(a[gid], val);"
+"}";
+const cl::Program scalarmaximum_program(scalarmaximum_source, true);
+auto scalarmaximum = cl::make_kernel<cl::Buffer, float, cl::Buffer, unsigned int>(
+  scalarmaximum_program, "scalarmaximum"
+);
+void ScalarMaximum(OpenCLArray* a, float val, OpenCLArray* out) {
+  OpenCLDims dims(out->size);
+  cl::EnqueueArgs eargs(dims.global, dims.local);
+  scalarmaximum(eargs, a->mem, val, out->mem, (unsigned int)out->size).wait();
 }
 
-void ScalarDiv(const AlignedArray& a, scalar_t val, AlignedArray* out) {
-  for (size_t i = 0; i < a.size; i++) {
-    out->ptr[i] = a.ptr[i] / val;
-  }
+
+std::string ewiseeq_source =
+"__kernel void ewiseeq(__global float* a, __global float* b, __global float* out, unsigned int size) {"
+"  size_t gid = get_global_id(0);"
+"  if (gid < size) out[gid] = a[gid] == b[gid];"
+"}";
+const cl::Program ewiseeq_program(ewiseeq_source, true);
+auto ewiseeq = cl::make_kernel<cl::Buffer, cl::Buffer, cl::Buffer, unsigned int>(
+  ewiseeq_program, "ewiseeq"
+);
+void EwiseEq(OpenCLArray* a, OpenCLArray* b, OpenCLArray* out) {
+  OpenCLDims dims(out->size);
+  cl::EnqueueArgs eargs(dims.global, dims.local);
+  ewiseeq(eargs, a->mem, b->mem, out->mem, (unsigned int)out->size).wait();
 }
 
-void ScalarPower(const AlignedArray& a, scalar_t val, AlignedArray* out) {
-  for (size_t i = 0; i < a.size; i++) {
-    out->ptr[i] = pow(a.ptr[i], val);
-  }
+
+std::string scalareq_source =
+"__kernel void scalareq(__global float* a, float val, __global float* out, unsigned int size) {"
+"  size_t gid = get_global_id(0);"
+"  if (gid < size) out[gid] = a[gid] == val;"
+"}";
+const cl::Program scalareq_program(scalareq_source, true);
+auto scalareq = cl::make_kernel<cl::Buffer, float, cl::Buffer, unsigned int>(
+  scalareq_program, "scalareq"
+);
+void ScalarEq(OpenCLArray* a, float val, OpenCLArray* out) {
+  OpenCLDims dims(out->size);
+  cl::EnqueueArgs eargs(dims.global, dims.local);
+  scalareq(eargs, a->mem, val, out->mem, (unsigned int)out->size).wait();
 }
 
-void EwiseMaximum(const AlignedArray& a, const AlignedArray& b, AlignedArray* out) {
-  for (size_t i = 0; i < a.size; i++) {
-    out->ptr[i] = std::max(a.ptr[i], b.ptr[i]);
-  }
+
+std::string ewisege_source =
+"__kernel void ewisege(__global float* a, __global float* b, __global float* out, unsigned int size) {"
+"  size_t gid = get_global_id(0);"
+"  if (gid < size) out[gid] = a[gid] >= b[gid];"
+"}";
+const cl::Program ewisege_program(ewisege_source, true);
+auto ewisege = cl::make_kernel<cl::Buffer, cl::Buffer, cl::Buffer, unsigned int>(
+  ewisege_program, "ewisege"
+);
+void EwiseGe(OpenCLArray* a, OpenCLArray* b, OpenCLArray* out) {
+  OpenCLDims dims(out->size);
+  cl::EnqueueArgs eargs(dims.global, dims.local);
+  ewisege(eargs, a->mem, b->mem, out->mem, (unsigned int)out->size).wait();
 }
 
-void ScalarMaximum(const AlignedArray& a, scalar_t val, AlignedArray* out) {
-  for (size_t i = 0; i < a.size; i++) {
-    out->ptr[i] = std::max(a.ptr[i], val);
-  }
+
+std::string scalarge_source =
+"__kernel void scalarge(__global float* a, float val, __global float* out, unsigned int size) {"
+"  size_t gid = get_global_id(0);"
+"  if (gid < size) out[gid] = a[gid] >= val;"
+"}";
+const cl::Program scalarge_program(scalarge_source, true);
+auto scalarge = cl::make_kernel<cl::Buffer, float, cl::Buffer, unsigned int>(
+  scalarge_program, "scalarge"
+);
+void ScalarGe(OpenCLArray* a, float val, OpenCLArray* out) {
+  OpenCLDims dims(out->size);
+  cl::EnqueueArgs eargs(dims.global, dims.local);
+  scalarge(eargs, a->mem, val, out->mem, (unsigned int)out->size).wait();
 }
 
-void EwiseEq(const AlignedArray& a, const AlignedArray& b, AlignedArray* out) {
-  for (size_t i = 0; i < a.size; i++) {
-    out->ptr[i] = a.ptr[i] == b.ptr[i];
-  }
+
+std::string ewiselog_source =
+"__kernel void ewiselog(__global float* a, __global float* out, unsigned int size) {"
+"  size_t gid = get_global_id(0);"
+"  if (gid < size) out[gid] = log(a[gid]);"
+"}";
+const cl::Program ewiselog_program(ewiselog_source, true);
+auto ewiselog = cl::make_kernel<cl::Buffer, cl::Buffer, unsigned int>(
+  ewiselog_program, "ewiselog"
+);
+void EwiseLog(OpenCLArray* a, OpenCLArray* out) {
+  OpenCLDims dims(out->size);
+  cl::EnqueueArgs eargs(dims.global, dims.local);
+  ewiselog(eargs, a->mem, out->mem, (unsigned int)out->size).wait();
 }
 
-void ScalarEq(const AlignedArray& a, scalar_t val, AlignedArray* out) {
-  for (size_t i = 0; i < a.size; i++) {
-    out->ptr[i] = a.ptr[i] == val;
-  }
+
+std::string ewiseexp_source =
+"__kernel void ewiseexp(__global float* a, __global float* out, unsigned int size) {"
+"  size_t gid = get_global_id(0);"
+"  if (gid < size) out[gid] = exp(a[gid]);"
+"}";
+const cl::Program ewiseexp_program(ewiseexp_source, true);
+auto ewiseexp = cl::make_kernel<cl::Buffer, cl::Buffer, unsigned int>(
+  ewiseexp_program, "ewiseexp"
+);
+void EwiseExp(OpenCLArray* a, OpenCLArray* out) {
+ OpenCLDims dims(out->size);
+  cl::EnqueueArgs eargs(dims.global, dims.local);
+  ewiseexp(eargs, a->mem, out->mem, (unsigned int)out->size).wait();
 }
 
-void EwiseGe(const AlignedArray& a, const AlignedArray& b, AlignedArray* out) {
-  for (size_t i = 0; i < a.size; i++) {
-    out->ptr[i] = a.ptr[i] >= b.ptr[i];
-  }
-}
 
-void ScalarGe(const AlignedArray& a, scalar_t val, AlignedArray* out) {
-  for (size_t i = 0; i < a.size; i++) {
-    out->ptr[i] = a.ptr[i] >= val;
-  }
+std::string ewisetanh_source =
+"__kernel void ewisetanh(__global float* a, __global float* out, unsigned int size) {"
+"  size_t gid = get_global_id(0);"
+"  if (gid < size) out[gid] = tanh(a[gid]);"
+"}";
+const cl::Program ewisetanh_program(ewisetanh_source, true);
+auto ewisetanh = cl::make_kernel<cl::Buffer, cl::Buffer, unsigned int>(
+  ewisetanh_program, "ewisetanh"
+);
+void EwiseTanh(OpenCLArray* a, OpenCLArray* out) {
+  OpenCLDims dims(out->size);
+  cl::EnqueueArgs eargs(dims.global, dims.local);
+  ewisetanh(eargs, a->mem, out->mem, (unsigned int)out->size).wait();
 }
-
-void EwiseLog(const AlignedArray& a, AlignedArray* out) {
-  for (size_t i = 0; i < a.size; i++) {
-    out->ptr[i] = log(a.ptr[i]);
-  }
-}
-
-void EwiseExp(const AlignedArray& a, AlignedArray* out) {
-  for (size_t i = 0; i < a.size; i++) {
-    out->ptr[i] = exp(a.ptr[i]);
-  }
-}
-
-void EwiseTanh(const AlignedArray& a, AlignedArray* out) {
-  for (size_t i = 0; i < a.size; i++) {
-    out->ptr[i] = tanh(a.ptr[i]);
-  }
-}
-*/
 /// END YOUR SOLUTION
 
 std::string matmul_source =
@@ -746,51 +819,51 @@ void Matmul(OpenCLArray* a, OpenCLArray* b, OpenCLArray* out, unsigned int M,
   ).wait();
 }
 
-// void ReduceMax(const AlignedArray& a, AlignedArray* out, size_t reduce_size) {
-//   /**
-//    * Reduce by taking maximum over `reduce_size` contiguous blocks.
-//    *
-//    * Args:
-//    *   a: compact array of size a.size = out.size * reduce_size to reduce over
-//    *   out: compact array to write into
-//    *   redice_size: size of the dimension to reduce over
-//    */
 
-//   /// BEGIN YOUR SOLUTION
-//   auto cnt = 0;
-//   for (size_t i = 0; i < a.size; i+=reduce_size) {
-//     auto max = a.ptr[i];
-//     for (size_t j=1; j < reduce_size; j++) {
-//       if (a.ptr[i+j] > max) {
-//         max = a.ptr[i+j];
-//       }
-//     }
-//     out->ptr[cnt++] = max;
-//   }
-//   /// END YOUR SOLUTION
-// }
+std::string reducemax_source =
+"__kernel void reducemax(__global float* a, __global float* out, unsigned int size, unsigned int reduce_size) {"
+"  size_t gid = get_global_id(0);"
+"  float result = 0.0f;"
+"  if (gid < size)  {"
+"    result = a[gid*reduce_size];"
+"    for (size_t j = 1; j < reduce_size; j++)  {"
+"      result = max(result, a[gid*reduce_size + j]);"
+"    }"
+"    out[gid] = result;"
+"  }"
+"}";
+const cl::Program reducemax_program(reducemax_source, true);
+auto reducemax = cl::make_kernel<cl::Buffer, cl::Buffer, unsigned int, unsigned int>(
+  reducemax_program, "reducemax"
+);
+void ReduceMax(OpenCLArray* a, OpenCLArray* out, unsigned int reduce_size) {
+  OpenCLDims dims(out->size);
+  cl::EnqueueArgs eargs(dims.global, dims.local);
+  reducemax(eargs, a->mem, out->mem, (unsigned int)out->size, reduce_size).wait();
+}
 
-// void ReduceSum(const AlignedArray& a, AlignedArray* out, size_t reduce_size) {
-//   /**
-//    * Reduce by taking sum over `reduce_size` contiguous blocks.
-//    *
-//    * Args:
-//    *   a: compact array of size a.size = out.size * reduce_size to reduce over
-//    *   out: compact array to write into
-//    *   redice_size: size of the dimension to reduce over
-//    */
 
-//   /// BEGIN YOUR SOLUTION
-//   auto cnt = 0;
-//   for (size_t i = 0; i < a.size; i+=reduce_size) {
-//     float sum = 0;
-//     for (size_t j=0; j < reduce_size; j++) {
-//         sum += a.ptr[i+j];
-//     }
-//     out->ptr[cnt++] = sum;
-//   }
-//   /// END YOUR SOLUTION
-// }
+std::string reducesum_source =
+"__kernel void reducesum(__global float* a, __global float* out, unsigned int size, unsigned int reduce_size) {"
+"  size_t gid = get_global_id(0);"
+"  float result = 0.0f;"
+"  if (gid < size)  {"
+"    result = a[gid*reduce_size];"
+"    for (size_t j = 1; j < reduce_size; j++)  {"
+"      result = result + a[gid*reduce_size + j];"
+"    }"
+"    out[gid] = result;"
+"  }"
+"}";
+const cl::Program reducesum_program(reducesum_source, true);
+auto reducesum = cl::make_kernel<cl::Buffer, cl::Buffer, unsigned int, size_t>(
+  reducesum_program, "reducesum"
+);
+void ReduceSum(OpenCLArray* a, OpenCLArray* out, unsigned int reduce_size) {
+  OpenCLDims dims(out->size);
+  cl::EnqueueArgs eargs(dims.global, dims.local);
+  reducesum(eargs, a->mem, out->mem, (unsigned int)out->size, reduce_size).wait();
+}
 
 
 // // Simple setup to debug a Kernel argument definition
@@ -891,7 +964,7 @@ PYBIND11_MODULE(ndarray_backend_opencl, m) {
     }
   });
 
-//   debug_kernel_build(matmul_source);
+  debug_kernel_build(scalarmaximum_source);
 
   m.def("fill", Fill);
   m.def("compact", Compact);
@@ -904,21 +977,21 @@ PYBIND11_MODULE(ndarray_backend_opencl, m) {
   m.def("scalar_mul", ScalarMul);
   m.def("ewise_div", EwiseDiv);
   m.def("scalar_div", ScalarDiv);
-  // m.def("scalar_power", ScalarPower);
-  // //
-  // m.def("ewise_maximum", EwiseMaximum);
-  // m.def("scalar_maximum", ScalarMaximum);
-  // m.def("ewise_eq", EwiseEq);
-  // m.def("scalar_eq", ScalarEq);
-  // m.def("ewise_ge", EwiseGe);
-  // m.def("scalar_ge", ScalarGe);
-  // //
-  // m.def("ewise_log", EwiseLog);
-  // m.def("ewise_exp", EwiseExp);
-  // m.def("ewise_tanh", EwiseTanh);
+  m.def("scalar_power", ScalarPower);
+
+  m.def("ewise_maximum", EwiseMaximum);
+  m.def("scalar_maximum", ScalarMaximum);
+  m.def("ewise_eq", EwiseEq);
+  m.def("scalar_eq", ScalarEq);
+  m.def("ewise_ge", EwiseGe);
+  m.def("scalar_ge", ScalarGe);
+
+  m.def("ewise_log", EwiseLog);
+  m.def("ewise_exp", EwiseExp);
+  m.def("ewise_tanh", EwiseTanh);
 
   m.def("matmul", Matmul);
 
-  // m.def("reduce_max", ReduceMax);
-  // m.def("reduce_sum", ReduceSum);
+  m.def("reduce_max", ReduceMax);
+  m.def("reduce_sum", ReduceSum);
 }
