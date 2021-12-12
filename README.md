@@ -1,4 +1,15 @@
-# Homework 3
+# Final Project
 
-Public repository and stub/testing code for Homework 3 of 10-714.
+Implementation of OpenCL for the needle framework
 
+## Installation
+
+- TODO
+
+```bash
+pip install -r requirements.txt
+```
+
+## Set up pre-commit
+
+pre-commit runs some tooling before files are committed.

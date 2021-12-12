@@ -97,6 +97,7 @@ class NDArray:
         self._offset = other._offset
         self._device = other._device
         self._handle = other._handle
+        self._view = False
 
     @staticmethod
     def compact_strides(shape):
@@ -118,16 +119,22 @@ class NDArray:
         array._strides = NDArray.compact_strides(shape) if strides is None else strides
         array._offset = offset
         array._device = device if device is not None else default_device()
+        array._view = False
         if handle is None:
             array._handle = array.device.Array(prod(shape))
         else:
             array._handle = handle
+            array._view = True
         return array
 
     ### Properies and string representations
     @property
     def shape(self):
         return self._shape
+
+    @property
+    def size(self):
+        return np.prod(self._shape)
 
     @property
     def strides(self):
@@ -147,6 +154,10 @@ class NDArray:
         """ Return number of dimensions. """
         return len(self._shape)
 
+    @property
+    def view(self):
+        return self._view
+
     def __repr__(self):
         return (
             "NDArray("
@@ -156,6 +167,10 @@ class NDArray:
 
     def __str__(self):
         return self.numpy().__str__()
+
+    def astype(self, dtype):
+        # only support float32 for now
+        return self
 
     ### Basic array manipulation
     def fill(self, value):
@@ -178,7 +193,7 @@ class NDArray:
     def is_compact(self):
         """ Return true if array is compact in memory and internal size equals product
         of the shape dimensions """
-        return (self._strides == self.compact_strides(self._shape) and 
+        return (self._strides == self.compact_strides(self._shape) and
                 prod(self.shape) == self._handle.size)
 
     def compact(self):
@@ -199,6 +214,10 @@ class NDArray:
             shape, strides=strides, device=self.device, handle=self._handle
         )
 
+    @property
+    def flat(self):
+        return self.reshape((self.size,))
+
     def reshape(self, new_shape):
         """
         Reshape the matrix without copying memory.  This will return a matrix
@@ -215,19 +234,44 @@ class NDArray:
         Returns:
             NDArray : reshaped array; this will point to thep
         """
+        # TODO: a reshape on a view (based on get item) should sometimes
+        #       trigger a copy because reshape on a view does not always work
+        #       I had to implement view based auto-compacting, I need to extend
+        #       this functionality else where you can end up operating on a view
+        #       https://numpy.org/doc/stable/reference/generated/numpy.reshape.html
         ### BEGIN YOUR SOLUTION
-        curr_dim = reduce(operator.mul, self.shape)
-        new_dim = reduce(operator.mul, new_shape)
-        if curr_dim != new_dim:
-            raise ValueError(
-                f"cannot reshape array of shape {self.shape} into {new_shape}"
-            )
+        if self.view:
+            self._init(self.compact())
 
-        _dim = new_dim
-        new_strides = []
-        for d in new_shape:
-            _dim //= d
-            new_strides.append(_dim)
+        if new_shape == tuple():
+            curr_dim = reduce(operator.mul, self.shape)
+            new_strides = tuple()
+            if curr_dim != 1:
+                raise ValueError(
+                    "cannot reshape to scalar when shape is not all ones"
+                )
+        else:
+            new_dim = reduce(operator.mul, new_shape)
+            if len(self.shape) == 0:
+                if new_dim != 1:
+                    raise ValueError(
+                        "cannot reshape from scalar to an array with any "
+                        "dimensions greater than one"
+                    )
+                # set curr_dim to one to set up for the curr_dim != new_dim test
+                curr_dim = 1
+            else:
+                curr_dim = reduce(operator.mul, self.shape)
+            if curr_dim != new_dim:
+                raise ValueError(
+                    f"cannot reshape array of shape {self.shape} into "
+                    f"{new_shape}"
+                )
+            _dim = new_dim
+            new_strides = []
+            for d in new_shape:
+                _dim //= d
+                new_strides.append(_dim)
 
         return self.as_strided(new_shape, tuple(new_strides))
         ### END YOUR SOLUTION
@@ -287,6 +331,7 @@ class NDArray:
             NDArray: the new NDArray object with the new broadcast shape; should
             point to the same memory as the original array.
         """
+
         ### BEGIN YOUR SOLUTION
         comp_shape = tuple(e for e in new_shape if e != 1)
         if not all(
@@ -360,25 +405,41 @@ class NDArray:
         # handle singleton as tuple, everything as slices
         if not isinstance(idxs, tuple):
             idxs = (idxs,)
-        idxs = tuple(
+        proc_idxs = tuple(
             [
                 self.process_slice(s, i) if isinstance(s, slice) else slice(s, s + 1, 1)
                 for i, s in enumerate(idxs)
             ]
         )
-        assert len(idxs) == self.ndim, "Need indexes equal to number of dimensions"
+        assert len(proc_idxs) == self.ndim, "Need indexes equal to number of dimensions"
+
         ### BEGIN YOUR SOLUTION
         # calculate shape
         get_slice_len = lambda idx: math.ceil((idx.stop - idx.start) / idx.step)
-        shape = tuple(map(get_slice_len, idxs))
+        shape = tuple(map(get_slice_len, proc_idxs))
 
         # calculate offset
-        idx_start = [idx.start for idx in idxs]
+        idx_start = [idx.start for idx in proc_idxs]
         idx_stride_prod = map(operator.mul, self.strides, idx_start)
         offset = reduce(operator.add, idx_stride_prod)
 
         # calculate strides
-        strides = tuple(map(operator.mul, self.strides, [idx.step for idx in idxs]))
+        strides = tuple(map(operator.mul, self.strides, [idx.step for idx in proc_idxs]))
+
+        # Here, we reduce the dimension for any dimension in the original idx
+        # slices that were ints and not slices.
+        # Example:
+        #     X[3:4, 3:4] = [[z]]
+        #     X[3, 3] = z
+        if any(not isinstance(s, slice) for s in idxs):
+            _shape = tuple(shape_i for idx, shape_i in zip(idxs, shape) if isinstance(idx, slice))
+            _strides = tuple(
+                stride
+                for idx, stride in zip(idxs, strides)
+                if isinstance(idx, slice)
+            )
+            shape = _shape
+            strides = _strides
 
         return NDArray.make(
             shape=shape,
@@ -531,7 +592,7 @@ class NDArray:
             def tile(a, tile):
                 return a.as_strided(
                     (a.shape[0] // tile, a.shape[1] // tile, tile, tile),
-                    (a.shape[1] * tile, tile, self.shape[1], 1),
+                    (a.shape[1] * tile, tile, a.shape[1], 1),
                 )
 
             t = self.device.__tile_size__
@@ -578,6 +639,56 @@ class NDArray:
         view, out = self.reduce_view_out(axis)
         self.device.reduce_max(view.compact()._handle, out._handle, view.shape[-1])
         return out
+
+    def flip(self, axes):
+        """
+        Flip this ndarray along the specified axes.
+
+        Note: compact() before returning.
+        """
+        ### BEGIN YOUR SOLUTION
+        if axes is None:
+            axes = range(len(self.shape))
+        reversed_shape = reversed(self.shape)
+        offset = 0
+        acc_prod = 1
+        strides = list(self.strides)
+        for i, r in reversed(list(enumerate(self.shape))):
+            acc_prod *= r
+            if i in axes:
+                strides[i] *= -1
+                offset += (strides[i] + acc_prod)
+        return NDArray.make(
+            self.shape,
+            strides=strides,
+            device=self.device,
+            handle=self._handle,
+            offset=offset
+        ).compact()
+        ### END YOUR SOLUTION
+
+
+    def pad(self, axes):
+        """
+        Pad this ndarray by zeros by the specified amount in `axes`,
+        which lists for _all_ axes the left and right padding amount, e.g.,
+        axes = ( (0, 0), (1, 1), (0, 0)) pads the middle axis with a 0 on the left and right side.
+        """
+        ### BEGIN YOUR SOLUTION
+        shape_mods = map(sum, axes)
+        new_shape = tuple(map(sum, zip(self.shape, shape_mods)))
+        out = empty(new_shape, device=self.device)
+        out.fill(0.)
+        slices = [
+            slice(None) if lp == rp == 0 else slice(lp, lp+dim)
+            for dim, (lp, rp) in zip(self.shape, axes)
+        ]
+        out[tuple(slices)] = self[tuple(
+            slice(None)
+            for _ in range(len(self.shape))
+        )]
+        return out
+        ### END YOUR SOLUTION
 
 
 

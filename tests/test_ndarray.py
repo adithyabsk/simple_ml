@@ -27,22 +27,26 @@ def compare_strides(a_np, a_nd):
 def check_same_memory(original, view):
     assert original._handle.ptr() == view._handle.ptr()
 
-# Custom opencl tests
-def test_simple_opencl():
-    nd.opencl()
-#   A = nd.array(np.random.randn(2049), device=nd.opencl())
-#   B = nd.array(np.random.randn(2049), device=nd.opencl())
-#   print(A+B)
-#   print(A.shape)
-    # shape, np_fn, nd_fn = (4, 4), lambda X: X.transpose(), lambda X: X.permute((1, 0))
-    # _A = np.random.randint(low=0, high=10, size=shape)
-    # print(_A)
-    # A = nd.array(_A, device=nd.opencl())
-    # print(A)
-    # print(A.numpy())
-    # A.fill(1.)
-    # print(A)
-    raise ValueError()
+# Test opencl when pytest does not load which means that there is a runtime
+# compilation error in the opencl driver. You first need to remove the
+# nd.opencl in the _DEVICES which is what causes this issue
+# TODO: move the _DEVICE parameterization into a pytest fixture so that this
+#       doesn't happen in the future
+# def test_simple_opencl():
+#     nd.opencl()
+# #   A = nd.array(np.random.randn(2049), device=nd.opencl())
+# #   B = nd.array(np.random.randn(2049), device=nd.opencl())
+# #   print(A+B)
+# #   print(A.shape)
+#     # shape, np_fn, nd_fn = (4, 4), lambda X: X.transpose(), lambda X: X.permute((1, 0))
+#     # _A = np.random.randint(low=0, high=10, size=shape)
+#     # print(_A)
+#     # A = nd.array(_A, device=nd.opencl())
+#     # print(A)
+#     # print(A.numpy())
+#     # A.fill(1.)
+#     # print(A)
+#     raise ValueError()
 
 
 
@@ -184,7 +188,6 @@ def test_setitem_scalar(params, device):
     # probably tear these out using lambdas
     print(slices)
     start_ptr = A._handle.ptr() if "opencl" not in str(device) else None
-    # import pdb; pdb.set_trace()
     _A[slices] = 4.0
     A[slices] = 4.0
     end_ptr = A._handle.ptr() if "opencl" not in str(device) else None
@@ -267,7 +270,6 @@ def test_permute(device, params):
     if "opencl" not in str(device):
       # NOTE: OpenCL does not allow for raw pointer access of device memory
       #       so this check cannot be performed
-      import pdb; pdb.set_trace()
       check_same_memory(A, rhs)
 
 

@@ -1,5 +1,7 @@
 """Core data structures."""
 import needle
+from enum import Enum
+
 from typing import List, Optional, NamedTuple
 from collections import namedtuple
 from .device import default_device, Device, CachedData
@@ -230,10 +232,20 @@ class Tensor(Value):
     @property
     def dtype(self):
         return self.realize_cached_data().dtype
+    
+    @property
+    def size(self):
+        return self.realize_cached_data().size
 
     def backward(self, out_grad=None):
         out_grad = out_grad if out_grad else needle.ops.ones_like(self)
         compute_gradient_of_variables(self, out_grad)
+
+    def __getitem__(self, idxs):
+        return needle.ops.get_item(self, idxs)
+
+    def __setitem__(self, idxs, other):
+        return needle.ops.set_item(self, idxs, other)
 
     def __repr__(self):
         return "needle.Tensor(" + str(self.realize_cached_data()) + ")"
@@ -259,15 +271,16 @@ class Tensor(Value):
             return needle.ops.multiply_scalar(self, other)
 
     def __pow__(self, other):
-        ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
-        ### END YOUR SOLUTION
+        if isinstance(other, Tensor):
+            raise NotImplementedError()
+        else:
+            return needle.ops.power_scalar(self, other)
 
     def __sub__(self, other):
         if isinstance(other, Tensor):
             return needle.ops.add(self, needle.ops.negate(other))
         else:
-            return needle.ops.add_scalar(self, needle.ops.negate(other))
+            return needle.ops.add_scalar(self, -other)
 
     def __truediv__(self, other):
         if isinstance(other, Tensor):
@@ -295,6 +308,15 @@ class Tensor(Value):
 
     def transpose(self, axes=None):
         return needle.ops.transpose(self, axes)
+    
+    def flip(self, axes=None):
+        return needle.ops.flip(self, axes)
+
+    def pad(self, axes=None):
+        return needle.ops.pad(self, axes)
+
+    def permute(self, new_axes=None):
+        return needle.ops.permute(self, new_axes)
 
     __radd__ = __add__
     __rmul__ = __mul__
@@ -308,7 +330,7 @@ def compute_gradient_of_variables(output_tensor, out_grad):
     Store the computed result in the grad field of each Variable.
     """
     # a map from node to a list of gradient contributions from each output node
-    node_to_output_grads_list: Dict[Tensor, List[Tensor]] = {}
+    node_to_output_grads_list: Dict[Tensor, List[Tensor]] = {} # defaultdict(list)
     # Special note on initializing gradient of
     # We are really taking a derivative of the scalar reduce_sum(output_node)
     # instead of the vector output_node. But this is the common case for loss function.
@@ -318,8 +340,32 @@ def compute_gradient_of_variables(output_tensor, out_grad):
     reverse_topo_order = list(reversed(find_topo_sort([output_tensor])))
 
     ### BEGIN YOUR SOLUTION
-    raise NotImplementedError()
+    for node in reverse_topo_order:
+        if node in node_to_output_grads_list:
+            out_grad = sum_node_list(node_to_output_grads_list[node])
+        else:
+            out_grad = needle.zeros_like(node)
+
+        if not node.requires_grad:
+            continue
+
+        if not node.is_leaf():
+            in_grads = node.op.gradient(out_grad, node)
+
+        for i, x in enumerate(node.inputs):
+            if x not in node_to_output_grads_list:
+                node_to_output_grads_list[x] = []
+            node_to_output_grads_list[x].append(in_grads[i])
+
+        if node.is_leaf():
+            node.grad = out_grad
     ### END YOUR SOLUTION
+
+
+class TraversalMark(Enum):
+    NOT_VISITED = 0
+    TEMPORARY = 1
+    VISITED = 2
 
 
 def find_topo_sort(node_list: List[Value]) -> List[Value]:
@@ -331,15 +377,36 @@ def find_topo_sort(node_list: List[Value]) -> List[Value]:
     sort.
     """
     ### BEGIN YOUR SOLUTION
-    raise NotImplementedError()
-    ### END YOUR SOLUTION
+    topo_order = []
+    for node in node_list:
+        if not hasattr(node, "mark"):
+            topo_sort_dfs(node, topo_order)
+    
+    # clear marks on all nodes
+    for node in topo_order:
+        del node.mark
+    
+    # reverse post order dfs
+    return topo_order[::-1]
+   ### END YOUR SOLUTION
 
-
-def topo_sort_dfs(node, visited, topo_order):
+def topo_sort_dfs(val: Value, topo_order: List[Value]):
     """Post-order DFS"""
     ### BEGIN YOUR SOLUTION
-    raise NotImplementedError()
+    if not hasattr(val, "mark"):
+        val.mark = TraversalMark.TEMPORARY
+    elif val.mark == TraversalMark.VISITED:
+        return
+    elif val.mark == TraversalMark.TEMPORARY:
+        raise ValueError("Not a DAG")
+    
+    for child in val.inputs:
+        topo_sort_dfs(child, topo_order)
+    
+    val.mark = TraversalMark.VISITED
+    topo_order.insert(0, val)
     ### END YOUR SOLUTION
+
 
 
 ##############################
