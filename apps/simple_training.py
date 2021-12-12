@@ -6,6 +6,7 @@ import needle as ndl
 import needle.nn as nn
 import numpy as np
 from models import *  # noqa: F403
+from tqdm import tqdm
 
 # TODO: Make these concrete imports instead of a star import
 
@@ -33,7 +34,27 @@ def epoch_general_cifar10(dataloader, model, loss_fn=None, opt=None):
     if loss_fn is None:
         loss_fn = nn.SoftmaxLoss()
     ### BEGIN YOUR SOLUTION
-    raise NotImplementedError()
+    # raise NotImplementedError()
+    accs = []
+    losses = []
+    if not opt:
+        model.eval()
+    else:
+        model.train()
+    for X, y in tqdm(dataloader, position=0, leave=True):
+        if opt:
+            opt.reset_grad()
+        out = model(X)
+        loss = loss_fn(out, y)
+        if opt:
+            loss.backward()
+            opt.step()
+        out_cat = np.argmax(out.numpy(), axis=1)
+        acc = np.mean(out_cat == y.numpy())
+        accs.append(acc)
+        losses.append(loss.numpy())
+    model.train()
+    return np.mean(accs), np.mean(losses)
     ### END YOUR SOLUTION
 
 
@@ -64,7 +85,11 @@ def train_cifar10(
     """
     np.random.seed(4)
     ### BEGIN YOUR SOLUTION
-    raise NotImplementedError()
+    # raise NotImplementedError()
+    opt = optimizer(model.parameters(), lr=lr, weight_decay=weight_decay)
+    for _ in tqdm(range(n_epochs), position=1, leave=True):
+        avg_acc, avg_loss = epoch_general_cifar10(dataloader, model, loss_fn=loss_fn(), opt=opt)
+    return avg_acc, avg_loss
     ### END YOUR SOLUTION
 
 
@@ -83,7 +108,8 @@ def evaluate_cifar10(model, dataloader, loss_fn=nn.SoftmaxLoss):
     """
     np.random.seed(4)
     ### BEGIN YOUR SOLUTION
-    raise NotImplementedError()
+    # raise NotImplementedError()
+    return epoch_general_cifar10(dataloader, model, loss_fn=loss_fn(), opt=None)
     ### END YOUR SOLUTION
 
 
