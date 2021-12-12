@@ -1,9 +1,9 @@
 """Operatpr table."""
 # Global operator table.
 from numbers import Number
-from typing import Optional, List
-import numpy as np
-from .autograd import Op, Tensor, Value, Tuple
+from typing import List, Optional
+
+from .autograd import Op, Tensor, Tuple, Value
 from .device import default_device
 
 OP_TABLE = {}
@@ -165,9 +165,13 @@ class PowerScalarOp(Op):
 
     def gradient(self, out_grad, node):
         ### BEGIN YOUR SOLUTION
-        return [(node.attrs["scalar"] * (node.inputs[0] ** (node.attrs["scalar"] - 1))) * out_grad]
+        return [
+            (node.attrs["scalar"] * (node.inputs[0] ** (node.attrs["scalar"] - 1)))
+            * out_grad
+        ]
         ### END YOUR SOLUTION
-        
+
+
 power_scalar = register_op("PowerScalar", PowerScalarOp())
 
 
@@ -180,7 +184,7 @@ class EWiseDivOp(Op):
     def gradient(self, out_grad, node):
         ### BEGIN YOUR SOLUTION
         lhs, rhs = node.inputs
-        return (out_grad / rhs, out_grad * (- lhs / (rhs * rhs)))
+        return (out_grad / rhs, out_grad * (-lhs / (rhs * rhs)))
         ### END YOUR SOLUTION
 
 
@@ -203,10 +207,10 @@ divide_scalar = register_op("DivScalar", DivScalarOp())
 def sum_grad(tensor, target_shape_len):
     input_shape_len = len(tensor.shape)
     if input_shape_len > target_shape_len:
-      sum_len = input_shape_len - target_shape_len
-      summation_axes = tuple(range(sum_len))
-      return tensor.sum(summation_axes)
-    
+        sum_len = input_shape_len - target_shape_len
+        summation_axes = tuple(range(sum_len))
+        return tensor.sum(summation_axes)
+
     return tensor
 
 
@@ -219,7 +223,7 @@ class MatMulOp(Op):
         lhs, rhs = node.inputs
         return (
             sum_grad(out_grad @ rhs.transpose(None), len(lhs.shape)),
-            sum_grad(lhs.transpose(None) @ out_grad, len(rhs.shape))
+            sum_grad(lhs.transpose(None) @ out_grad, len(rhs.shape)),
         )
         ### END YOUR SOLUTION
 
@@ -233,16 +237,13 @@ class SummationOp(Op):
 
     def gradient(self, out_grad, node):
         ### BEGIN YOUR SOLUTION
-        input_node = node.inputs[0]
         input_shape = node.inputs[0].shape
         axes = node.attrs.get("axes", None)
         summation_axis = set(
-          ([axes] if isinstance(axes, int) else axes)
-          or range(len(input_shape))
+            ([axes] if isinstance(axes, int) else axes) or range(len(input_shape))
         )
         new_shape = [
-          1 if i in summation_axis else dim
-          for i, dim in enumerate(input_shape)
+            1 if i in summation_axis else dim for i, dim in enumerate(input_shape)
         ]
         # the first reshape adds back the reduced dimensions as 1s
         # the brodcast expands this into repeated values
@@ -264,13 +265,11 @@ class BroadcastToOp(Op):
         if broadcast_shape == input_shape:
             return [out_grad]
         pad_len = len(broadcast_shape) - len(input_shape)
-        padded_input_shape = (0,)*pad_len+input_shape
+        padded_input_shape = (0,) * pad_len + input_shape
         summation_axes = tuple(
-          i
-          for i, (b, pi) in enumerate(
-            zip(broadcast_shape, padded_input_shape)
-          )
-          if b != pi
+            i
+            for i, (b, pi) in enumerate(zip(broadcast_shape, padded_input_shape))
+            if b != pi
         )
 
         return [out_grad.sum(summation_axes).reshape(input_shape)]
@@ -288,7 +287,9 @@ class ReshapeOp(Op):
         ### BEGIN YOUR SOLUTION
         input_shape = node.inputs[0].shape
         if len(input_shape) == 0:
-            first_elem_slice = (0,)+tuple(slice(None) for _ in range(len(out_grad.shape)-1))
+            first_elem_slice = (0,) + tuple(
+                slice(None) for _ in range(len(out_grad.shape) - 1)
+            )
             return [out_grad[first_elem_slice]]
         else:
             return [out_grad.reshape(input_shape)]
@@ -306,9 +307,7 @@ class PermuteOp(Op):
         ### BEGIN YOUR SOLUTION
         new_axes = node.attrs["new_axes"]
         # resort new_axes in original order
-        orig_axes = tuple(
-            map(lambda idx: new_axes.index(idx), range(len(new_axes)))
-        )
+        orig_axes = tuple(map(lambda idx: new_axes.index(idx), range(len(new_axes))))
         return [out_grad.permute(orig_axes)]
         ### END YOUR SOLUTION
 
@@ -350,7 +349,7 @@ class LogOp(Op):
     def gradient(self, out_grad, node):
         ### BEGIN YOUR SOLUTION
         n = node.inputs[0]
-        return [out_grad / n] # essentially 1 / n * out_grad
+        return [out_grad / n]  # essentially 1 / n * out_grad
         ### END YOUR SOLUTION
 
 
@@ -375,17 +374,19 @@ class ReLUOp(Op):
     def gradient(self, out_grad, node):
         ### BEGIN YOUR SOLUTION
         epsilon = 1e-12
-        return [((node + epsilon)/ (node.inputs[0] + epsilon))*out_grad]
+        return [((node + epsilon) / (node.inputs[0] + epsilon)) * out_grad]
         ### END YOUR SOLUTION
 
 
 relu = register_op("ReLU", ReLUOp())
 
+
 def softmax_stable(x):
-    last_axis = len(x.shape)-1
+    last_axis = len(x.shape) - 1
     orig_shape = x.shape[:-1] + (1,)
     z = exp(x - x.cached_data.max(last_axis).reshape(orig_shape).broadcast_to(x.shape))
     return z / summation(z, axes=last_axis).reshape(orig_shape).broadcast_to(z.shape)
+
 
 class LogSoftmaxOp(Op):
     def __call__(self, a: Tensor) -> Tensor:
@@ -394,13 +395,15 @@ class LogSoftmaxOp(Op):
     def gradient(self, out_grad, node):
         ### BEGIN YOUR SOLUTION
         a = node.inputs[0]
-        last_axis = len(a.shape)-1
-        orig_shape = a.shape[:-1]+(1,)
+        last_axis = len(a.shape) - 1
+        orig_shape = a.shape[:-1] + (1,)
         return [
             out_grad
             - (
                 softmax_stable(a)
-                * summation(out_grad, axes=last_axis).reshape(orig_shape).broadcast_to(a.shape)
+                * summation(out_grad, axes=last_axis)
+                .reshape(orig_shape)
+                .broadcast_to(a.shape)
             )
         ]
         ### END YOUR SOLUTION
@@ -418,7 +421,7 @@ class TanhOp(Op):
         # TODO: not sure why this gradient comes out backwards
         #       it should be (1 - tanh^2(x))
         #       but the numerical tests say it should be  (-1+tanh^2(x))
-        return [-(1 - tanh(node.inputs[0])**2) * out_grad]
+        return [-(1 - tanh(node.inputs[0]) ** 2) * out_grad]
         ### END YOUR SOLUTION
 
 
@@ -438,6 +441,7 @@ class GetItemOp(Op):
         return [ret_tensor]
         ### END YOUR SOLUTION
 
+
 get_item = register_op("GetItem", GetItemOp())
 
 
@@ -448,12 +452,13 @@ class SetItemOp(Op):
     def gradient(self, out_grad, node):
         raise NotImplementedError()
 
+
 set_item = register_op("SetItem", SetItemOp())
 
 
 class StackOp(Op):
     def __call__(self, args: List[Value], axis: int) -> Tensor:
-        return Tensor.make_from_op(self, args, attrs={'axis': axis})
+        return Tensor.make_from_op(self, args, attrs={"axis": axis})
 
     def gradient(self, out_grad, node):
         ### BEGIN YOUR SOLUTION
@@ -461,75 +466,94 @@ class StackOp(Op):
         arr_list = node.inputs
         init_shape = arr_list[0].shape
         axis = node.attrs["axis"]
-        slices = [slice(None) for i in range(len(init_shape)+1)]
+        slices = [slice(None) for i in range(len(init_shape) + 1)]
         start = 0
-        for arr in arr_list:
+        for _ in range(len(arr_list)):
             slices[axis] = start
             out_grad_list.append(out_grad[tuple(slices)].reshape(init_shape))
             start += 1
         return out_grad_list
         ### END YOUR SOLUTION
 
+
 stack = register_op("Stack", StackOp())
 
 
 class ConvOp(Op):
-    def __call__(self, a: Tensor, b: Tensor, stride: Optional[int] = 1, padding: Optional[int] = 0) -> Tensor:
-        return Tensor.make_from_op(self, [a, b], attrs={'stride': stride, 'padding': padding})
+    def __call__(
+        self,
+        a: Tensor,
+        b: Tensor,
+        stride: Optional[int] = 1,
+        padding: Optional[int] = 0,
+    ) -> Tensor:
+        return Tensor.make_from_op(
+            self, [a, b], attrs={"stride": stride, "padding": padding}
+        )
 
     def gradient(self, out_grad, node):
         ### BEGIN YOUR SOLUTION
         X_grad, W_grad = node.inputs
         padding = node.attrs["padding"]
         stride = node.attrs["stride"]
-        N,H,W,C_in = X_grad.shape
-        K,_,_,C_out = W_grad.shape
-        out_grad_mod = dilate(out_grad, dilation=stride-1, axes=(1, 2))
+        N, H, W, C_in = X_grad.shape
+        K, _, _, C_out = W_grad.shape
+        out_grad_mod = dilate(out_grad, dilation=stride - 1, axes=(1, 2))
         # this permutation is super magical, and to be 100% honest, I have no
         # flipping clue why the permutations result in the correct outputs
         # I was just dimension bashing to get the dimensions to match based on
         # the intuition that I need to use conv in the backward pass
-        X_slices = tuple([slice(None), slice(padding, padding+H), slice(padding, padding+W), slice(None)])
+        X_slices = tuple(
+            [
+                slice(None),
+                slice(padding, padding + H),
+                slice(padding, padding + W),
+                slice(None),
+            ]
+        )
         return (
             # flip W over the kernel dimensions and then permute
             # make sure to reshape after the slice in case there was a dimension
             # of one which will reduce the dims by default (we did not
             # implement keep dims)
             conv(
-                out_grad_mod.pad(axes=((0, 0), (K-1, K-1), (K-1, K-1), (0, 0))),
-                W_grad.flip((0,1)).permute((0, 1, 3, 2))
+                out_grad_mod.pad(axes=((0, 0), (K - 1, K - 1), (K - 1, K - 1), (0, 0))),
+                W_grad.flip((0, 1)).permute((0, 1, 3, 2)),
             )[X_slices].reshape(X_grad.shape),
             conv(
                 X_grad.permute((3, 1, 2, 0)),
-                out_grad_mod.permute((1, 2, 0, 3)), padding=padding
-            ).permute((1, 2, 0, 3))
+                out_grad_mod.permute((1, 2, 0, 3)),
+                padding=padding,
+            ).permute((1, 2, 0, 3)),
         )
         ### END YOUR SOLUTION
+
 
 conv = register_op("Conv", ConvOp())
 
 
 class PadOp(Op):
     def __call__(self, a: Tensor, axes: tuple) -> Tensor:
-        return Tensor.make_from_op(self, [a], attrs={'axes': axes})
+        return Tensor.make_from_op(self, [a], attrs={"axes": axes})
 
     def gradient(self, out_grad, node):
         ### BEGIN YOUR SOLUTION
         axes = node.attrs.get("axes", None)
         A = node.inputs[0]
         slices = tuple(
-            slice(None) if lp == rp == 0 else slice(lp, lp+dim)
+            slice(None) if lp == rp == 0 else slice(lp, lp + dim)
             for dim, (lp, rp) in zip(A.shape, axes)
         )
         return [out_grad[slices]]
         ### END YOUR SOLUTION
+
 
 pad = register_op("Pad", PadOp())
 
 
 class FlipOp(Op):
     def __call__(self, a: Tensor, axes: tuple) -> Tensor:
-        return Tensor.make_from_op(self, [a], attrs={'axes': axes})
+        return Tensor.make_from_op(self, [a], attrs={"axes": axes})
 
     def gradient(self, out_grad, node):
         ### BEGIN YOUR SOLUTION
@@ -537,12 +561,15 @@ class FlipOp(Op):
         return [out_grad.flip(axes)]
         ### END YOUR SOLUTION
 
+
 flip = register_op("Flip", FlipOp())
 
 
 class DilateOp(Op):
     def __call__(self, a: Tensor, dilation: int, axes: tuple) -> Tensor:
-        return Tensor.make_from_op(self, [a], attrs={'dilation': dilation, 'axes': axes})
+        return Tensor.make_from_op(
+            self, [a], attrs={"dilation": dilation, "axes": axes}
+        )
 
     def gradient(self, out_grad, node):
         ### BEGIN YOUR SOLUTION
@@ -552,18 +579,22 @@ class DilateOp(Op):
         if axes is None:
             axes = range(len(node.inputs[0].shape))
         slices = [
-            slice(None, None, dilation+1) if i in axes else slice(None)
+            slice(None, None, dilation + 1) if i in axes else slice(None)
             for i, s in enumerate(a.shape)
         ]
         return [out_grad[tuple(slices)]]
         ### END YOUR SOLUTION
 
+
 dilate = register_op("Dilate", DilateOp())
+
 
 # additional helper functions
 def full(
-    shape, fill_value, *, rand={}, dtype="float32", device=None, requires_grad=False
+    shape, fill_value, *, rand=None, dtype="float32", device=None, requires_grad=False
 ):
+    if rand is None:
+        rand = {}
     device = device if device else default_device()
 
     if not rand or "dist" not in rand:
@@ -585,8 +616,10 @@ def one_hot(labels: Tensor, *, num_classes=10, dtype="float32", device=None):
     arr = device.one_hot(labels.numpy(), num_classes=num_classes)
     return Tensor.make_const(arr, device, requires_grad=False)
 
+
 def ones(shape, *, dtype="float32", device=None, requires_grad=False):
     return full(shape, 1, dtype=dtype, device=device, requires_grad=requires_grad)
+
 
 def zeros(shape, *, dtype="float32", device=None, requires_grad=False):
     return full(shape, 0, dtype=dtype, device=device, requires_grad=requires_grad)

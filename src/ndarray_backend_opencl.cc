@@ -130,7 +130,7 @@ std::string GetOpenCLErrorDescription(cl_int err) {
 		case CL_INVALID_ARG_VALUE: result += "the argument value specified is NULL, returned by clSetKernelArg"; break;
 		case CL_INVALID_ARG_SIZE: result += "the given argument size (arg_size) do not match size of the data type for an argument, returned by clSetKernelArg"; break;
 		case CL_INVALID_KERNEL_ARGS: result += "the kernel argument values have not been specified, returned by clEnqueueNDRangeKernel / clEnqueueTask"; break;
-		case CL_INVALID_WORK_DIMENSION: result += "given work dimension is an invalid value, returned by clEnqueueNDRangeKernel"; break; 
+		case CL_INVALID_WORK_DIMENSION: result += "given work dimension is an invalid value, returned by clEnqueueNDRangeKernel"; break;
 		case CL_INVALID_WORK_GROUP_SIZE: result += "the specified local workgroup size and number of workitems specified by global workgroup size is not evenly divisible by local workgroup size"; break;
 		case CL_INVALID_WORK_ITEM_SIZE: result += "no. of workitems specified in any of local work group sizes is greater than the corresponding values specified by CL_DEVICE_MAX_WORK_ITEM_SIZES in that particular dimension"; break;
 		case CL_INVALID_GLOBAL_OFFSET: result += "global_work_offset is not NULL. Must currently be a NULL value. In a future revision of OpenCL, global_work_offset can be used but not until OCL 1.2"; break;
@@ -189,7 +189,7 @@ void debug_kernel_build(std::string source) {
   } catch (cl::Error err) {
     std::string logs;
     program.getBuildInfo(cl::Device::getDefault(), CL_PROGRAM_BUILD_LOG, &logs);
-    std::cerr 
+    std::cerr
         << "ERROR: "
         << err.what()
         << "("
@@ -206,7 +206,7 @@ void debug_kernel_build(std::string source) {
 namespace needle {
 namespace opencl {
 
-// CL_DEVICE_MAX_WORK_GROUP_SIZE = 4100 
+// CL_DEVICE_MAX_WORK_GROUP_SIZE = 4100
 #define TILE 8
 typedef float scalar_t;
 const size_t ELEM_SIZE = sizeof(scalar_t);
@@ -352,7 +352,7 @@ auto compact = cl::make_kernel<
   const cl::Buffer, unsigned int,
   unsigned int
 >(compact_program, "compact");
-void Compact(OpenCLArray* a, OpenCLArray* out, std::vector<uint32_t> shape, 
+void Compact(OpenCLArray* a, OpenCLArray* out, std::vector<uint32_t> shape,
               std::vector<uint32_t> strides, size_t offset) {
   OpenCLDims dims(out->size);
   const OpenCLArray shape_cl(shape);
@@ -366,7 +366,7 @@ void Compact(OpenCLArray* a, OpenCLArray* out, std::vector<uint32_t> shape,
       (unsigned int)offset
     ).wait();
   } catch (cl::Error err) {
-    std::cerr 
+    std::cerr
         << "ERROR: "
         << err.what()
         << "("
@@ -409,7 +409,7 @@ auto ewisesetitem = cl::make_kernel<
   const cl::Buffer, unsigned int,
   unsigned int
 >(ewisesetitem_program, "ewisesetitem");
-void EwiseSetitem(OpenCLArray* a, OpenCLArray* out, std::vector<uint32_t> shape, 
+void EwiseSetitem(OpenCLArray* a, OpenCLArray* out, std::vector<uint32_t> shape,
               std::vector<uint32_t> strides, size_t offset) {
   OpenCLDims dims(out->size);
   const OpenCLArray shape_cl(shape);
@@ -423,7 +423,7 @@ void EwiseSetitem(OpenCLArray* a, OpenCLArray* out, std::vector<uint32_t> shape,
       (unsigned int)offset
     ).wait();
   } catch (cl::Error err) {
-    std::cerr 
+    std::cerr
         << "ERROR: "
         << err.what()
         << "("
@@ -466,7 +466,7 @@ auto scalarsetitem = cl::make_kernel<
   const cl::Buffer, unsigned int,
   unsigned int
 >(scalarsetitem_program, "scalarsetitem");
-void ScalarSetitem(size_t size, scalar_t val, OpenCLArray* a, std::vector<uint32_t> shape, 
+void ScalarSetitem(size_t size, scalar_t val, OpenCLArray* a, std::vector<uint32_t> shape,
               std::vector<uint32_t> strides, size_t offset) {
   OpenCLDims dims(size);
   const OpenCLArray shape_cl(shape);
@@ -480,7 +480,7 @@ void ScalarSetitem(size_t size, scalar_t val, OpenCLArray* a, std::vector<uint32
       (unsigned int)offset
     ).wait();
   } catch (cl::Error err) {
-    std::cerr 
+    std::cerr
         << "ERROR: "
         << err.what()
         << "("
@@ -510,7 +510,7 @@ void EwiseAdd(OpenCLArray* a, OpenCLArray* b, OpenCLArray* out) {
   try {
     ewiseadd(eargs, a->mem, b->mem, out->mem, (unsigned int)out->size).wait();
   } catch (cl::Error err) {
-    std::cerr 
+    std::cerr
         << "ERROR: "
         << err.what()
         << "("
@@ -875,7 +875,7 @@ void ReduceSum(OpenCLArray* a, OpenCLArray* out, unsigned int reduce_size) {
 //   queue.enqueueNDRangeKernel(kernel_fill, cl::NullRange, dims.global, dims.local);
 //   queue.finish();
 // } catch (cl::Error err) {
-//   std::cerr 
+//   std::cerr
 //       << "ERROR: "
 //       << err.what()
 //       << "("
@@ -905,7 +905,7 @@ PYBIND11_MODULE(ndarray_backend_opencl, m) {
     std::vector<size_t> numpy_strides = strides;
     std::transform(numpy_strides.begin(), numpy_strides.end(), numpy_strides.begin(),
                    [](size_t& c) { return c * sizeof(float); });
-    
+
     // copy memory to host
     scalar_t* host_ptr = (scalar_t*)std::malloc(a.size * ELEM_SIZE);
     if (host_ptr == 0) throw std::bad_alloc();
@@ -918,7 +918,7 @@ PYBIND11_MODULE(ndarray_backend_opencl, m) {
         host_ptr
       );
     } catch (cl::Error err) {
-      std::cerr 
+      std::cerr
           << "ERROR: "
           << err.what()
           << "("
@@ -927,11 +927,11 @@ PYBIND11_MODULE(ndarray_backend_opencl, m) {
           << std::endl;
       throw std::runtime_error(GetOpenCLErrorInfo(err.err()));
     }
-    
+
 
     // if (status_code != CL_SUCCESS) {
     //   std::cout << "Entered" << std::endl;
-    //   std::cerr 
+    //   std::cerr
     //       << GetOpenCLErrorInfo(status_code)
     //       << std::endl;
     //   throw std::runtime_error(GetOpenCLErrorInfo(status_code));

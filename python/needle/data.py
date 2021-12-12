@@ -1,12 +1,11 @@
-import io
 import os
 import pickle
+from typing import Any, Iterable, Iterator, List, Optional, Sized, Union
 
 import numpy as np
-from .autograd import Tensor
-
-from typing import Iterator, Optional, List, Sized, Union, Iterable, Any
 from needle import backend_ndarray as nd
+
+from .autograd import Tensor
 
 
 class Transform:
@@ -121,7 +120,7 @@ class RandomSampler(Sampler):
                     low=0, high=n, size=(32,), dtype=np.int64
                 ).tolist()
             yield from np.random.randint(
-                low=0, high=n, size=(self.num_samples %32,), dtype=np.int64
+                low=0, high=n, size=(self.num_samples % 32,), dtype=np.int64
             ).tolist()
         else:
             yield from np.random.permutation(n).tolist()
@@ -179,7 +178,7 @@ class BatchSampler(Sampler):
             if len(batch) == self.batch_size:
                 yield batch
                 batch = []
-        
+
         if len(batch) > 0 and not self.drop_last:
             yield batch
         ### END YOUR SOLUTION
@@ -189,9 +188,7 @@ class BatchSampler(Sampler):
         if self.drop_last:
             return len(self.sampler) // self.batch_size
         else:
-            return (
-                (len(self.sampler) + self.batch_size - 1) // self.batch_size
-            )
+            return (len(self.sampler) + self.batch_size - 1) // self.batch_size
         ### END YOUR SOLUTION
 
 
@@ -215,7 +212,7 @@ def collate_ndarray(batch, device, dtype):
         for x, y in batch:
             xs.append(x)
             ys.append(y)
-        
+
         return (
             Tensor(nd.array(xs), device=device, dtype=dtype),
             Tensor(nd.array(ys), device=device, dtype=dtype),
@@ -284,8 +281,8 @@ class DataLoader:
         sampler: Union[Sampler, Iterable, None] = None,
         collate_fn: Optional = default_collate,
         drop_last: bool = False,
-        device = None,
-        dtype = None
+        device=None,
+        dtype=None,
     ):
 
         self.dataset = dataset
@@ -426,7 +423,9 @@ class _BaseDatasetFetcher(object):
 
 class _IterableDatasetFetcher(_BaseDatasetFetcher):
     def __init__(self, dataset, collate_fn, drop_last, device, dtype):
-        super(_IterableDatasetFetcher, self).__init__(dataset, collate_fn, drop_last, device, dtype)
+        super(_IterableDatasetFetcher, self).__init__(
+            dataset, collate_fn, drop_last, device, dtype
+        )
         self.dataset = dataset
         self.ended = False
         self.device = device
@@ -436,7 +435,7 @@ class _IterableDatasetFetcher(_BaseDatasetFetcher):
         ### BEGIN YOUR SOLUTION
         if self.ended:
             raise StopIteration
-        
+
         if type(possibly_batched_index) == list:
             data = []
             for idx in possibly_batched_index:
@@ -451,7 +450,7 @@ class _IterableDatasetFetcher(_BaseDatasetFetcher):
                 raise StopIteration
         else:
             data = self.dataset[possibly_batched_index]
-        
+
         return self.collate_fn(data, self.device, self.dtype)
         ### END YOUR SOLUTION
 
@@ -509,7 +508,7 @@ class CIFAR10Dataset(Dataset):
         base_folder: str,
         train: bool,
         p: Optional[int] = 0.5,
-        transforms: Optional[List] = None
+        transforms: Optional[List] = None,
     ):
         """
         Parameters:
@@ -530,23 +529,23 @@ class CIFAR10Dataset(Dataset):
                 "data_batch_2",
                 "data_batch_3",
                 "data_batch_4",
-                "data_batch_5"
+                "data_batch_5",
             ]
         else:
             downloaded_list = ["test_batch"]
-        
+
         self.X = []
         self.y = []
 
         for file_name in downloaded_list:
             file_path = os.path.join(base_folder, file_name)
-            with open(file_path, 'rb') as fopen:
-                entry = pickle.load(fopen, encoding='latin1')
-                self.X.append(entry['data'])
-                self.y.extend(entry['labels'])
-        
+            with open(file_path, "rb") as fopen:
+                entry = pickle.load(fopen, encoding="latin1")
+                self.X.append(entry["data"])
+                self.y.extend(entry["labels"])
+
         self.X = np.vstack(self.X).reshape(-1, 3, 32, 32)
-        self.X = self.X.transpose((0, 2, 3, 1)) / 255.
+        self.X = self.X.transpose((0, 2, 3, 1)) / 255.0
         ### END YOUR SOLUTION
 
     def __getitem__(self, index) -> object:
@@ -582,6 +581,7 @@ class Dictionary(object):
     idx2word: list of words in the dictionary, in the order they were added
         to the dictionary (i.e. each word only appears once in this list)
     """
+
     def __init__(self):
         self.word2idx = {}
         self.idx2word = []
@@ -615,10 +615,11 @@ class Corpus(object):
     """
     Creates corpus from train, and test txt files.
     """
+
     def __init__(self, base_dir, max_lines=None):
         self.dictionary = Dictionary()
-        self.train = self.tokenize(os.path.join(base_dir, 'train.txt'), max_lines)
-        self.test = self.tokenize(os.path.join(base_dir, 'test.txt'), max_lines)
+        self.train = self.tokenize(os.path.join(base_dir, "train.txt"), max_lines)
+        self.test = self.tokenize(os.path.join(base_dir, "test.txt"), max_lines)
 
     def tokenize(self, path, max_lines=None):
         """
@@ -636,11 +637,11 @@ class Corpus(object):
         """
         ### BEGIN YOUR SOLUTION
         id_list = []
-        with open(path, 'r') as fopen:
+        with open(path, "r") as fopen:
             for i, line in enumerate(fopen.readlines()):
-                if max_lines is not None and i+1 > max_lines:
+                if max_lines is not None and i + 1 > max_lines:
                     break
-                split_line = line.strip().split(' ')+["<eos>"]
+                split_line = line.strip().split(" ") + ["<eos>"]
                 for word in split_line:
                     self.dictionary.add_word(word)
                     id_list.append(self.dictionary.word2idx[word])
@@ -699,14 +700,13 @@ def get_batch(batches, i, bptt, device=None, dtype=None):
     target - Tensor of shape (bptt*bs,) with cached data as NDArray
     """
     ### BEGIN YOUR SOLUTION
-    batches_size = batches.size
     chop = batches.shape[0] % bptt
     # import pdb; pdb.set_trace()
     if chop != 0:
         batches = batches[:-chop]
-    shaped = batches.reshape((batches.shape[0]//bptt, bptt, batches.shape[1]))
+    shaped = batches.reshape((batches.shape[0] // bptt, bptt, batches.shape[1]))
     i //= bptt
     data = Tensor(shaped[i], device=device, dtype=dtype)
-    target = Tensor(shaped[i+1].ravel(), device=device, dtype=dtype)
+    target = Tensor(shaped[i + 1].ravel(), device=device, dtype=dtype)
     return data, target
     ### END YOUR SOLUTION

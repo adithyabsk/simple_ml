@@ -1,10 +1,10 @@
 """Core data structures."""
-import needle
 from enum import Enum
+from typing import Dict, List, Optional
 
-from typing import List, Optional, NamedTuple
-from collections import namedtuple
-from .device import default_device, Device, CachedData
+import needle
+
+from .device import CachedData, Device, default_device
 
 LAZY_MODE = False
 TENSOR_COUNTER = 0
@@ -232,7 +232,7 @@ class Tensor(Value):
     @property
     def dtype(self):
         return self.realize_cached_data().dtype
-    
+
     @property
     def size(self):
         return self.realize_cached_data().size
@@ -308,7 +308,7 @@ class Tensor(Value):
 
     def transpose(self, axes=None):
         return needle.ops.transpose(self, axes)
-    
+
     def flip(self, axes=None):
         return needle.ops.flip(self, axes)
 
@@ -330,7 +330,7 @@ def compute_gradient_of_variables(output_tensor, out_grad):
     Store the computed result in the grad field of each Variable.
     """
     # a map from node to a list of gradient contributions from each output node
-    node_to_output_grads_list: Dict[Tensor, List[Tensor]] = {} # defaultdict(list)
+    node_to_output_grads_list: Dict[Tensor, List[Tensor]] = {}  # defaultdict(list)
     # Special note on initializing gradient of
     # We are really taking a derivative of the scalar reduce_sum(output_node)
     # instead of the vector output_node. But this is the common case for loss function.
@@ -381,14 +381,17 @@ def find_topo_sort(node_list: List[Value]) -> List[Value]:
     for node in node_list:
         if not hasattr(node, "mark"):
             topo_sort_dfs(node, topo_order)
-    
+
     # clear marks on all nodes
     for node in topo_order:
         del node.mark
-    
+
     # reverse post order dfs
     return topo_order[::-1]
-   ### END YOUR SOLUTION
+
+
+### END YOUR SOLUTION
+
 
 def topo_sort_dfs(val: Value, topo_order: List[Value]):
     """Post-order DFS"""
@@ -399,14 +402,13 @@ def topo_sort_dfs(val: Value, topo_order: List[Value]):
         return
     elif val.mark == TraversalMark.TEMPORARY:
         raise ValueError("Not a DAG")
-    
+
     for child in val.inputs:
         topo_sort_dfs(child, topo_order)
-    
+
     val.mark = TraversalMark.VISITED
     topo_order.insert(0, val)
     ### END YOUR SOLUTION
-
 
 
 ##############################
@@ -416,7 +418,7 @@ def topo_sort_dfs(val: Value, topo_order: List[Value]):
 
 def sum_node_list(node_list):
     """Custom sum function in order to avoid create redundant nodes in Python sum implementation."""
-    from operator import add
     from functools import reduce
+    from operator import add
 
     return reduce(add, node_list)

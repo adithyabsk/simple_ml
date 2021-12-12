@@ -1,6 +1,6 @@
 import math
+
 import needle as ndl
-import numpy as np
 
 
 def uniform(x, low=0.0, high=1.0):

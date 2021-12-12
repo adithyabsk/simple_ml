@@ -1,9 +1,11 @@
-import operator
 import math
+import operator
 from functools import reduce
+
 import numpy as np
-from . import ndarray_backend_numpy
-from . import ndarray_backend_cpu
+
+from . import ndarray_backend_cpu, ndarray_backend_numpy
+
 
 # math.prod not in Python 3.7
 def prod(x):
@@ -12,6 +14,7 @@ def prod(x):
 
 class BackendDevice:
     """A backend device, wrapps the implementation module."""
+
     def __init__(self, name, mod):
         self.name = name
         self.mod = mod
@@ -33,15 +36,17 @@ def cuda():
     """Return cuda device"""
     try:
         from . import ndarray_backend_cuda
+
         return BackendDevice("cuda", ndarray_backend_cuda)
     except ImportError:
         return BackendDevice("cuda", None)
-  
+
 
 def opencl():
     """Return opencl device"""
     try:
         from . import ndarray_backend_opencl
+
         return BackendDevice("opencl", ndarray_backend_opencl)
     except ImportError:
         return BackendDevice("opencl", None)
@@ -111,9 +116,9 @@ class NDArray:
 
     @staticmethod
     def make(shape, strides=None, device=None, handle=None, offset=0):
-        """ Create a new NDArray with the given properties.  This will allocation the
+        """Create a new NDArray with the given properties.  This will allocation the
         memory if handle=None, otherwise it will use the handle of an existing
-        array. """
+        array."""
         array = NDArray.__new__(NDArray)
         array._shape = tuple(shape)
         array._strides = NDArray.compact_strides(shape) if strides is None else strides
@@ -159,11 +164,7 @@ class NDArray:
         return self._view
 
     def __repr__(self):
-        return (
-            "NDArray("
-            + self.numpy().__str__()
-            + f", device={self.device})"
-        )
+        return "NDArray(" + self.numpy().__str__() + f", device={self.device})"
 
     def __str__(self):
         return self.numpy().__str__()
@@ -191,10 +192,12 @@ class NDArray:
         )
 
     def is_compact(self):
-        """ Return true if array is compact in memory and internal size equals product
-        of the shape dimensions """
-        return (self._strides == self.compact_strides(self._shape) and
-                prod(self.shape) == self._handle.size)
+        """Return true if array is compact in memory and internal size equals product
+        of the shape dimensions"""
+        return (
+            self._strides == self.compact_strides(self._shape)
+            and prod(self.shape) == self._handle.size
+        )
 
     def compact(self):
         """ Convert a matrix to be compact """
@@ -247,9 +250,7 @@ class NDArray:
             curr_dim = reduce(operator.mul, self.shape)
             new_strides = tuple()
             if curr_dim != 1:
-                raise ValueError(
-                    "cannot reshape to scalar when shape is not all ones"
-                )
+                raise ValueError("cannot reshape to scalar when shape is not all ones")
         else:
             new_dim = reduce(operator.mul, new_shape)
             if len(self.shape) == 0:
@@ -264,8 +265,7 @@ class NDArray:
                 curr_dim = reduce(operator.mul, self.shape)
             if curr_dim != new_dim:
                 raise ValueError(
-                    f"cannot reshape array of shape {self.shape} into "
-                    f"{new_shape}"
+                    f"cannot reshape array of shape {self.shape} into " f"{new_shape}"
                 )
             _dim = new_dim
             new_strides = []
@@ -299,13 +299,9 @@ class NDArray:
 
         ### BEGIN YOUR SOLUTION
         if len(new_axes) != len(self.shape):
-            raise ValueError(
-                f"new_axes dimensions does not match input axes dimensions"
-            )
+            raise ValueError("new_axes dimensions does not match input axes dimensions")
         if set(new_axes) != set(range(len(self.shape))):
-            raise ValueError(
-                "new_axes does not contain all axes"
-            )
+            raise ValueError("new_axes does not contain all axes")
 
         new_shape = tuple(map(self.shape.__getitem__, new_axes))
         new_strides = tuple(map(self.strides.__getitem__, new_axes))
@@ -333,12 +329,7 @@ class NDArray:
         """
 
         ### BEGIN YOUR SOLUTION
-        comp_shape = tuple(e for e in new_shape if e != 1)
-        if not all(
-            e1 == e2
-            for e1, e2 in zip(self.shape, new_shape)
-            if e1 != 1
-        ):
+        if not all(e1 == e2 for e1, e2 in zip(self.shape, new_shape) if e1 != 1):
             raise ValueError(
                 f"cannot broadcast array of shape {self.shape} into {new_shape}"
             )
@@ -355,15 +346,15 @@ class NDArray:
     def process_slice(self, sl, dim):
         """ Convert a slice to an explicit start/stop/step """
         start, stop, step = sl.start, sl.stop, sl.step
-        if start == None:
+        if start is None:
             start = 0
         if start < 0:
             start = self.shape[dim]
-        if stop == None:
+        if stop is None:
             stop = self.shape[dim]
         if stop < 0:
             stop = self.shape[dim] + stop
-        if step == None:
+        if step is None:
             step = 1
 
         # we're not gonna handle negative strides and that kind of thing
@@ -415,8 +406,13 @@ class NDArray:
 
         ### BEGIN YOUR SOLUTION
         # calculate shape
-        get_slice_len = lambda idx: math.ceil((idx.stop - idx.start) / idx.step)
-        shape = tuple(map(get_slice_len, proc_idxs))
+        shape = tuple(
+            map(
+                # get_slice_len function
+                lambda idx: math.ceil((idx.stop - idx.start) / idx.step),
+                proc_idxs,
+            )
+        )
 
         # calculate offset
         idx_start = [idx.start for idx in proc_idxs]
@@ -424,7 +420,9 @@ class NDArray:
         offset = reduce(operator.add, idx_stride_prod)
 
         # calculate strides
-        strides = tuple(map(operator.mul, self.strides, [idx.step for idx in proc_idxs]))
+        strides = tuple(
+            map(operator.mul, self.strides, [idx.step for idx in proc_idxs])
+        )
 
         # Here, we reduce the dimension for any dimension in the original idx
         # slices that were ints and not slices.
@@ -432,11 +430,11 @@ class NDArray:
         #     X[3:4, 3:4] = [[z]]
         #     X[3, 3] = z
         if any(not isinstance(s, slice) for s in idxs):
-            _shape = tuple(shape_i for idx, shape_i in zip(idxs, shape) if isinstance(idx, slice))
+            _shape = tuple(
+                shape_i for idx, shape_i in zip(idxs, shape) if isinstance(idx, slice)
+            )
             _strides = tuple(
-                stride
-                for idx, stride in zip(idxs, strides)
-                if isinstance(idx, slice)
+                stride for idx, stride in zip(idxs, strides) if isinstance(idx, slice)
             )
             shape = _shape
             strides = _strides
@@ -446,7 +444,7 @@ class NDArray:
             strides=strides,
             offset=offset,
             device=self.device,
-            handle=self._handle
+            handle=self._handle,
         )
         ### END YOUR SOLUTION
 
@@ -649,7 +647,6 @@ class NDArray:
         ### BEGIN YOUR SOLUTION
         if axes is None:
             axes = range(len(self.shape))
-        reversed_shape = reversed(self.shape)
         offset = 0
         acc_prod = 1
         strides = list(self.strides)
@@ -657,16 +654,15 @@ class NDArray:
             acc_prod *= r
             if i in axes:
                 strides[i] *= -1
-                offset += (strides[i] + acc_prod)
+                offset += strides[i] + acc_prod
         return NDArray.make(
             self.shape,
             strides=strides,
             device=self.device,
             handle=self._handle,
-            offset=offset
+            offset=offset,
         ).compact()
         ### END YOUR SOLUTION
-
 
     def pad(self, axes):
         """
@@ -678,18 +674,14 @@ class NDArray:
         shape_mods = map(sum, axes)
         new_shape = tuple(map(sum, zip(self.shape, shape_mods)))
         out = empty(new_shape, device=self.device)
-        out.fill(0.)
+        out.fill(0.0)
         slices = [
-            slice(None) if lp == rp == 0 else slice(lp, lp+dim)
+            slice(None) if lp == rp == 0 else slice(lp, lp + dim)
             for dim, (lp, rp) in zip(self.shape, axes)
         ]
-        out[tuple(slices)] = self[tuple(
-            slice(None)
-            for _ in range(len(self.shape))
-        )]
+        out[tuple(slices)] = self[tuple(slice(None) for _ in range(len(self.shape)))]
         return out
         ### END YOUR SOLUTION
-
 
 
 def array(a, dtype="float32", device=None):

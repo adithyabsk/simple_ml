@@ -3,8 +3,8 @@
 This backend uses numpy for cached data and redirects
 all computations to corresponding numpy functions.
 """
-import numpy as np
 import needle.device
+import numpy as np
 from needle.device import Device, DLDeviceType
 from needle.ops import register_op_attr
 
@@ -39,8 +39,8 @@ class NumpyDevice(Device):
         return np.random.uniform(low=low, high=high, size=shape).astype(dtype)
 
     def one_hot(self, y, num_classes=10):
-        I = np.eye(num_classes)
-        return I[y]
+        eye_mat = np.eye(num_classes)
+        return eye_mat[y]
 
     def to_numpy(self, data):
         return data

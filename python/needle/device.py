@@ -1,6 +1,7 @@
 """Computational engine interface."""
 from enum import IntEnum
-from typing import Union, List
+from typing import List, Union
+
 import numpy as np
 
 
@@ -50,9 +51,7 @@ class Device:
         """Convert device_array to numpy array."""
         raise NotImplementedError()
 
-    def compute(
-        self, op: "Op", input_data: List[CachedData], attrs: object
-    ) -> CachedData:
+    def compute(self, op, input_data: List[CachedData], attrs: object) -> CachedData:
         """Execute the underlying computation of op on inputs."""
         raise NotImplementedError()
 

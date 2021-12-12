@@ -1,22 +1,27 @@
+# noqa: E402
+# TODO: fix this noqa
+import operator
 import sys
 from functools import reduce
-import operator
 
-sys.path.append('./python')
+sys.path.append("./python")
+
 import needle as ndl
 import needle.nn as nn
-import math
 import numpy as np
+
 np.random.seed(0)
 
 
 class ConvBN(ndl.nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size, stride, device):
         super().__init__()
-        self.conv = nn.Conv(in_channels, out_channels, kernel_size, stride, device=device)
+        self.conv = nn.Conv(
+            in_channels, out_channels, kernel_size, stride, device=device
+        )
         self.bn = nn.BatchNorm(out_channels, device=device)
         self.relu = nn.ReLU()
-    
+
     def forward(self, x):
         return self.relu(self.bn(self.conv(x)))
 
@@ -26,28 +31,24 @@ class ResNet9(ndl.nn.Module):
         super().__init__()
         ### BEGIN YOUR SOLUTION ###
         self.first_set = nn.Sequential(
-            ConvBN(3, 16, 7, 4, device),
-            ConvBN(16, 32, 3, 2, device)
+            ConvBN(3, 16, 7, 4, device), ConvBN(16, 32, 3, 2, device)
         )
         self.second_set = nn.Sequential(
-            ConvBN(32, 32, 3, 1, device),
-            ConvBN(32, 32, 3, 1, device)
+            ConvBN(32, 32, 3, 1, device), ConvBN(32, 32, 3, 1, device)
         )
         # res_1 = nn.Residual(self.first_set)
         self.third_set = nn.Sequential(
-            ConvBN(32, 64, 3, 2, device),
-            ConvBN(64, 128, 3, 2, device)
+            ConvBN(32, 64, 3, 2, device), ConvBN(64, 128, 3, 2, device)
         )
         self.fourth_set = nn.Sequential(
-            ConvBN(128, 128, 3, 1, device),
-            ConvBN(128, 128, 3, 1, device)
+            ConvBN(128, 128, 3, 1, device), ConvBN(128, 128, 3, 1, device)
         )
         # res_2 = nn.Residual(self.third_set)
         self.output = nn.Sequential(
             nn.Flatten(),
             nn.Linear(128, 128, device=device),
             nn.ReLU(),
-            nn.Linear(128, 10, device=device)
+            nn.Linear(128, 10, device=device),
         )
         ### END YOUR SOLUTION
 
@@ -70,10 +71,11 @@ class LangFlatten(nn.Module):
     Input shape: (bs, s_1, ..., s_n)
     Output shape: (bs*s_1*...*s_n-1, s_n)
     """
+
     def __init__(self):
         super().__init__()
 
-    def forward(self, x: "Tensor") -> "Tensor":
+    def forward(self, x: "ndl.Tensor") -> "ndl.Tensor":
         ### BEGIN YOUR SOLUTION
         x_shape = x.shape
         flat_dims = reduce(operator.mul, x_shape[:-1])
@@ -83,8 +85,16 @@ class LangFlatten(nn.Module):
 
 
 class LanguageModel(nn.Module):
-    def __init__(self, embedding_size, output_size, hidden_size, num_layers=1,
-                 seq_model='rnn', device=None, dtype="float32"):
+    def __init__(
+        self,
+        embedding_size,
+        output_size,
+        hidden_size,
+        num_layers=1,
+        seq_model="rnn",
+        device=None,
+        dtype="float32",
+    ):
         """
         Consists of an embedding layer, a sequence model (either RNN or LSTM), and a
         linear layer.
@@ -99,20 +109,28 @@ class LanguageModel(nn.Module):
         super(LanguageModel, self).__init__()
         ### BEGIN YOUR SOLUTION
         self.output_size = output_size
-        self.embedding = nn.Embedding(output_size, embedding_size, device=device, dtype=dtype)
+        self.embedding = nn.Embedding(
+            output_size, embedding_size, device=device, dtype=dtype
+        )
         self.seq_model = seq_model
         self.embedding_size = embedding_size
         self.hidden_size = hidden_size
         self.num_layers = num_layers
         self.seq_model = (
             nn.RNN(
-                embedding_size, hidden_size, num_layers=num_layers,
-                device=device, dtype=dtype
+                embedding_size,
+                hidden_size,
+                num_layers=num_layers,
+                device=device,
+                dtype=dtype,
             )
             if seq_model == "rnn"
             else nn.LSTM(
-                embedding_size, hidden_size, num_layers=num_layers,
-                device=device, dtype=dtype
+                embedding_size,
+                hidden_size,
+                num_layers=num_layers,
+                device=device,
+                dtype=dtype,
             )
         )
         self.flat = LangFlatten()
@@ -143,10 +161,14 @@ class LanguageModel(nn.Module):
         ### END YOUR SOLUTION
 
 
-if __name__ == "__main__":
-    model = ResNet9()
-    x = ndl.ops.randu((1, 32, 32, 3), requires_grad=True)
-    model(x)
-    cifar10_train_dataset = ndl.data.CIFAR10Dataset("data/cifar-10-batches-py", train=True)
-    train_loader = ndl.data.DataLoader(cifar10_train_dataset, 128, ndl.cpu(), dtype="float32")
-    print(dataset[1][0].shape)
+# if __name__ == "__main__":
+#     model = ResNet9()
+#     x = ndl.ops.randu((1, 32, 32, 3), requires_grad=True)
+#     model(x)
+#     cifar10_train_dataset = ndl.data.CIFAR10Dataset(
+#         "data/cifar-10-batches-py", train=True
+#     )
+#     train_loader = ndl.data.DataLoader(
+#         cifar10_train_dataset, 128, ndl.cpu(), dtype="float32"
+#     )
+#     print(dataset[1][0].shape)

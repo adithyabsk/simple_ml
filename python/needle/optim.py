@@ -27,7 +27,14 @@ class SGD(Optimizer):
         """
         Clips gradient norm of parameters.
         """
-        total_norm = np.linalg.norm(np.array([np.linalg.norm(p.grad.detach().numpy()).reshape((1,)) for p in self.params]))
+        total_norm = np.linalg.norm(
+            np.array(
+                [
+                    np.linalg.norm(p.grad.detach().numpy()).reshape((1,))
+                    for p in self.params
+                ]
+            )
+        )
         clip_coef = max_norm / (total_norm + 1e-6)
         clip_coef_clamped = min((np.asscalar(clip_coef), 1.0))
         for p in self.params:
@@ -39,8 +46,7 @@ class SGD(Optimizer):
             grad = param.grad.data + self.weight_decay * param.data
             if i not in self.delta:
                 self.delta[i] = ndl.Tensor.make_const(
-                    -self.lr * grad,
-                    device=param.device
+                    -self.lr * grad, device=param.device
                 )
             else:
                 self.delta[i].data = (
@@ -51,7 +57,16 @@ class SGD(Optimizer):
 
 
 class Adam(Optimizer):
-    def __init__(self, params, lr=0.01, beta1=0.9, beta2=0.999, eps=1e-8, bias_correction=True, weight_decay=0.0):
+    def __init__(
+        self,
+        params,
+        lr=0.01,
+        beta1=0.9,
+        beta2=0.999,
+        eps=1e-8,
+        bias_correction=True,
+        weight_decay=0.0,
+    ):
         super().__init__(params)
         self.lr = lr
         self.beta1 = beta1
@@ -71,34 +86,28 @@ class Adam(Optimizer):
             grad = param.grad.data + self.weight_decay * param.data
             if i not in self.m:
                 self.m[i] = ndl.Tensor.make_const(
-                    (1-self.beta1) * grad,
-                    device=param.device
+                    (1 - self.beta1) * grad, device=param.device
                 )
             else:
-                self.m[i].data = (
-                    self.beta1 * self.m[i].data + (1 - self.beta1) * grad
-                )
+                self.m[i].data = self.beta1 * self.m[i].data + (1 - self.beta1) * grad
 
             if i not in self.v:
                 self.v[i] = ndl.Tensor.make_const(
-                    (1-self.beta2) * grad**2,
-                    device=param.device
+                    (1 - self.beta2) * grad ** 2, device=param.device
                 )
             else:
                 self.v[i].data = (
-                    self.beta2 * self.v[i].data + (1-self.beta2)*grad**2
+                    self.beta2 * self.v[i].data + (1 - self.beta2) * grad ** 2
                 )
-            
+
             m_hat = self.m[i].data
             v_hat = self.v[i].data
 
             if self.bias_correction:
-                m_hat = m_hat / (1 - self.beta1**self.t)
-                v_hat = v_hat / (1 - self.beta2**self.t)
-            
-            param.data = (
-                param.data + -self.lr * m_hat / (v_hat**0.5 + self.eps)
-            )
-            
+                m_hat = m_hat / (1 - self.beta1 ** self.t)
+                v_hat = v_hat / (1 - self.beta2 ** self.t)
+
+            param.data = param.data + -self.lr * m_hat / (v_hat ** 0.5 + self.eps)
+
             del m_hat, v_hat
         ### END YOUR SOLUTION

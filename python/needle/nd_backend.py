@@ -2,11 +2,11 @@
 
 This backend uses cuda backend_ndarray for cached data and computation.
 """
+import needle.device
+import numpy as np
 from needle import backend_ndarray as nd
 from needle.device import Device, DLDeviceType
 from needle.ops import register_op_attr
-import needle.device
-import numpy as np
 
 
 class NDDevice(Device):
@@ -24,16 +24,25 @@ class NDDevice(Device):
         return array
 
     def randn(self, shape, dtype, mean=0.0, std=1.0):
-        return nd.array(np.random.normal(loc=mean, scale=std, size=shape).astype(dtype), device=self.nd_device)
+        return nd.array(
+            np.random.normal(loc=mean, scale=std, size=shape).astype(dtype),
+            device=self.nd_device,
+        )
 
     def randb(self, shape, dtype, ntrials=1, p=0.5):
-        return nd.array(np.random.binomial(ntrials, p, size=shape).astype(dtype), device=self.nd_device)
+        return nd.array(
+            np.random.binomial(ntrials, p, size=shape).astype(dtype),
+            device=self.nd_device,
+        )
 
     def randu(self, shape, dtype, low=0, high=0):
-        return nd.array(np.random.uniform(low=low, high=high, size=shape).astype(dtype), device=self.nd_device)
+        return nd.array(
+            np.random.uniform(low=low, high=high, size=shape).astype(dtype),
+            device=self.nd_device,
+        )
 
     def one_hot(self, y, num_classes=10):
-        #TODO fix this
+        # TODO fix this
         y_one_hot = []
         for i in range(y.shape[0]):
             y_one_hot.append(np.eye(num_classes)[int(y[i])])
@@ -48,7 +57,6 @@ class NDDevice(Device):
         # dispatch device specific compute to op.numpy_compute
         # these computation are registered below.
         return op.nd_compute(inputs, attrs)
-
 
 
 class CUDADevice(NDDevice):
@@ -80,7 +88,7 @@ class CPUDevice(NDDevice):
 
     def __str__(self):
         return self.__repr__()
-  
+
 
 class OpenCLDevice(NDDevice):
     def __init__(self, device_id: int = 0):
@@ -98,7 +106,6 @@ class OpenCLDevice(NDDevice):
         return self.__repr__()
 
 
-
 def cuda(device_id: int = 0) -> CUDADevice:
     return CUDADevice(device_id)
 
@@ -106,11 +113,13 @@ def cuda(device_id: int = 0) -> CUDADevice:
 def cpu() -> CPUDevice:
     return CPUDevice()
 
+
 # set default device to be cpu device.
 needle.device._DEFAULT_DEVICE = CPUDevice
 
+
 def opencl(device_id: int = 0) -> CPUDevice:
-  return OpenCLDevice(device_id)
+    return OpenCLDevice(device_id)
 
 
 def register_nd_compute(name, value=None):
@@ -137,7 +146,7 @@ def mul(inputs, attrs):
 
 
 @register_nd_compute("MulScalar")
-def mul(inputs, attrs):
+def mul_scalar(inputs, attrs):
     return inputs[0] * attrs["scalar"]
 
 
@@ -182,13 +191,15 @@ def summation(inputs, attrs):
     """
     ### BEGIN YOUR SOLUTION
     if attrs["axes"] is None:
-        new_shape= tuple()
+        new_shape = tuple()
     elif isinstance(attrs["axes"], int):
         new_shape = list(inputs[0].shape)
         del new_shape[attrs["axes"]]
         new_shape = tuple(new_shape)
     else:  # axes is a tuple
-        new_shape = tuple(s for i, s in enumerate(inputs[0].shape) if i not in attrs["axes"])
+        new_shape = tuple(
+            s for i, s in enumerate(inputs[0].shape) if i not in attrs["axes"]
+        )
 
     if attrs["axes"] is None or isinstance(attrs["axes"], int):
         return inputs[0].sum(axis=attrs["axes"]).reshape(new_shape)
@@ -241,7 +252,7 @@ def transpose(inputs, attrs):
     shape_size = len(inputs[0].shape)
     axes = attrs.get("axes", None)
     if axes is None:
-      axes = (shape_size - 2, shape_size - 1)
+        axes = (shape_size - 2, shape_size - 1)
     # generate the permutation template
     new_axes = list(range(shape_size))
     # swap axes
@@ -285,11 +296,16 @@ def logsoftmax(inputs, attrs):
     # to implement a keep_dims argument but I'm leaving that as a todo for
     # future work
     x = inputs[0] - inputs[0].max(axis=last_axis).reshape(
-      (inputs[0].shape[:-1])+(1,)
+        (inputs[0].shape[:-1]) + (1,)
     ).broadcast_to(new_shape=inputs[0].shape)
-    return x - x.exp().sum(axis=last_axis).reshape(
-      (inputs[0].shape[:-1])+(1,)
-    ).broadcast_to(new_shape=inputs[0].shape).log()
+    return (
+        x
+        - x.exp()
+        .sum(axis=last_axis)
+        .reshape((inputs[0].shape[:-1]) + (1,))
+        .broadcast_to(new_shape=inputs[0].shape)
+        .log()
+    )
     ### END YOUR SOLUTION
 
 
@@ -346,14 +362,13 @@ def stack(As, attrs):
     out_shape = list(init_shape)
     out_shape[axis] = sum([arr.shape[axis] for arr in As])
     out_arr = nd.empty(tuple(out_shape), device=As[0].device)
-    # create a list of empty slices 
+    # create a list of empty slices
     slices = [slice(None) for i in range(len(init_shape))]
     start = 0
     for i, arr in enumerate(As):
         if len(arr.shape) != len(init_shape):
             raise ValueError(
-                f"Input array {i} does not have the same shape as the first"
-                "array"
+                f"Input array {i} does not have the same shape as the first" "array"
             )
         if not all(
             s == is_
@@ -364,10 +379,10 @@ def stack(As, attrs):
                 f"Input array {i} shape dimensions do not match the first"
                 f"array's shape dimensions (except for axis {axis})"
             )
-        slices[axis] = slice(start, start+1)
+        slices[axis] = slice(start, start + 1)
         out_arr[tuple(slices)] = arr
         start += 1
-    
+
     return out_arr
     ### END YOUR SOLUTION
 
@@ -416,14 +431,11 @@ def dilate(inputs, attrs):
     a = inputs[0]
     if axes is None:
         axes = range(len(a.shape))
-    out_shape = [
-        s*(dilation+1) if i in axes else s
-        for i, s in enumerate(a.shape)
-    ]
+    out_shape = [s * (dilation + 1) if i in axes else s for i, s in enumerate(a.shape)]
     out = nd.empty(out_shape, device=a.device)
-    out.fill(0.)
+    out.fill(0.0)
     slices = [
-        slice(None, None, dilation+1) if i in axes else slice(None)
+        slice(None, None, dilation + 1) if i in axes else slice(None)
         for i, s in enumerate(a.shape)
     ]
     out[tuple(slices)] = a
@@ -448,23 +460,23 @@ def conv(inputs, attrs):
     tensor = inputs[0]
     weight = inputs[1]
     pad_axes = ((0, 0), (padding, padding), (padding, padding), (0, 0))
-    Z = inputs[0].pad(axes=pad_axes)
+    Z = tensor.pad(axes=pad_axes)
     N, H, W, C_in = Z.shape
-    K, K_, C_in_ ,C_out = weight.shape
+    K, K_, C_in_, C_out = weight.shape
     if K != K_:
         raise ValueError(f"weight kernel sizes must be equal ({K} != {K_})")
     if C_in_ != C_in:
         raise ValueError(f"channel in must match ({C_in} != {C_in_})")
-    
+
     Ns, Hs, Ws, Cs = Z.strides
-    inner_dim = (K * K * C_in)
+    inner_dim = K * K * C_in
     # import pdb; pdb.set_trace()
     A = nd.NDArray.make(
-        (N, (H-K)//stride+1, (W-K)//stride+1, K, K, C_in),
-        strides=(Ns, Hs*stride, Ws*stride, Hs, Ws, Cs),
+        (N, (H - K) // stride + 1, (W - K) // stride + 1, K, K, C_in),
+        strides=(Ns, Hs * stride, Ws * stride, Hs, Ws, Cs),
         device=Z.device,
         handle=Z._handle,
-    ).reshape((N*((H-K)//stride+1)*((W-K)//stride+1), inner_dim))
-    out = A @ weight.reshape((K*K*C_in, C_out))
-    return out.reshape((N, (H-K)//stride+1, (W-K)//stride+1, C_out))
+    ).reshape((N * ((H - K) // stride + 1) * ((W - K) // stride + 1), inner_dim))
+    out = A @ weight.reshape((K * K * C_in, C_out))
+    return out.reshape((N, (H - K) // stride + 1, (W - K) // stride + 1, C_out))
     ### END YOUR SOLUTION

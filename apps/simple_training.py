@@ -1,14 +1,18 @@
 import sys
-sys.path.append('../python')
+
+sys.path.append("../python")
+
 import needle as ndl
 import needle.nn as nn
-from models import *
-import time
+import numpy as np
+from models import *  # noqa: F403
 
+# TODO: Make these concrete imports instead of a star import
 
 ### CIFAR-10 training ###
 
-def epoch_general_cifar10(dataloader, model, loss_fn=nn.SoftmaxLoss(), opt=None):
+
+def epoch_general_cifar10(dataloader, model, loss_fn=None, opt=None):
     """
     Iterates over the dataloader. If optimizer is not None, sets the
     model to train mode, and for each batch updates the model parameters.
@@ -26,13 +30,22 @@ def epoch_general_cifar10(dataloader, model, loss_fn=nn.SoftmaxLoss(), opt=None)
         avg_loss: average loss over dataset
     """
     np.random.seed(4)
+    if loss_fn is None:
+        loss_fn = nn.SoftmaxLoss()
     ### BEGIN YOUR SOLUTION
     raise NotImplementedError()
     ### END YOUR SOLUTION
 
 
-def train_cifar10(model, dataloader, n_epochs=1, optimizer=ndl.optim.Adam,
-          lr=0.001, weight_decay=0.001, loss_fn=nn.SoftmaxLoss):
+def train_cifar10(
+    model,
+    dataloader,
+    n_epochs=1,
+    optimizer=ndl.optim.Adam,
+    lr=0.001,
+    weight_decay=0.001,
+    loss_fn=nn.SoftmaxLoss,
+):
     """
     Performs {n_epochs} epochs of training.
 
@@ -74,10 +87,17 @@ def evaluate_cifar10(model, dataloader, loss_fn=nn.SoftmaxLoss):
     ### END YOUR SOLUTION
 
 
-
 ### PTB training ###
-def epoch_general_ptb(data, model, seq_len=40, loss_fn=nn.SoftmaxLoss(), opt=None,
-        clip=None, device=None, dtype="float32"):
+def epoch_general_ptb(
+    data,
+    model,
+    seq_len=40,
+    loss_fn=None,
+    opt=None,
+    clip=None,
+    device=None,
+    dtype="float32",
+):
     """
     Iterates over the data. If optimizer is not None, sets the
     model to train mode, and for each batch updates the model parameters.
@@ -97,6 +117,8 @@ def epoch_general_ptb(data, model, seq_len=40, loss_fn=nn.SoftmaxLoss(), opt=Non
         avg_loss: average loss over dataset
     """
     np.random.seed(4)
+    if loss_fn is None:
+        loss_fn = nn.SoftmaxLoss()
     ### BEGIN YOUR SOLUTION
     model.train()
     correct, total_loss = 0, 0
@@ -110,13 +132,23 @@ def epoch_general_ptb(data, model, seq_len=40, loss_fn=nn.SoftmaxLoss(), opt=Non
         loss.backward()
         opt.step()
         i += 1
-    return correct/(y.shape[0]*i), total_loss/(y.shape[0]*i)
+    return correct / (y.shape[0] * i), total_loss / (y.shape[0] * i)
     ### END YOUR SOLUTION
 
 
-def train_ptb(model, data, seq_len=40, n_epochs=1, optimizer=ndl.optim.SGD,
-          lr=4.0, weight_decay=0.0, loss_fn=nn.SoftmaxLoss, clip=None,
-          device=None, dtype="float32"):
+def train_ptb(
+    model,
+    data,
+    seq_len=40,
+    n_epochs=1,
+    optimizer=ndl.optim.SGD,
+    lr=4.0,
+    weight_decay=0.0,
+    loss_fn=nn.SoftmaxLoss,
+    clip=None,
+    device=None,
+    dtype="float32",
+):
     """
     Performs {n_epochs} epochs of training.
 
@@ -139,19 +171,26 @@ def train_ptb(model, data, seq_len=40, n_epochs=1, optimizer=ndl.optim.SGD,
     ### BEGIN YOUR SOLUTION
     loss = loss_fn()
     opt = optimizer(model.parameters(), lr=lr, weight_decay=weight_decay)
-    for epoch in range(n_epochs):
+    for _ in range(n_epochs):
         train_acc, train_loss = epoch_general_ptb(
-            data, model, seq_len, loss_fn=loss, opt=opt,
-            clip=clip, device=None, dtype="float32"
+            data,
+            model,
+            seq_len,
+            loss_fn=loss,
+            opt=opt,
+            clip=clip,
+            device=None,
+            dtype="float32",
         )
         # test_acc, test_loss = evaluate_ptb()
-    
+
     return train_acc, train_loss
     ### END YOUR SOLUTION
 
 
-def evaluate_ptb(model, data, seq_len=40, loss_fn=nn.SoftmaxLoss,
-        device=None, dtype="float32"):
+def evaluate_ptb(
+    model, data, seq_len=40, loss_fn=nn.SoftmaxLoss, device=None, dtype="float32"
+):
     """
     Computes the test accuracy and loss of the model.
 
@@ -178,7 +217,7 @@ def evaluate_ptb(model, data, seq_len=40, loss_fn=nn.SoftmaxLoss,
         loss = loss_fn(out, y)
         total_loss += loss.data.numpy() * y.shape[0]
         i += 1
-    return correct/(y.shape[0]*i), total_loss/(y.shape[0]*i)
+    return correct / (y.shape[0] * i), total_loss / (y.shape[0] * i)
     ### END YOUR SOLUTION
 
 
@@ -204,6 +243,11 @@ if __name__ == "__main__":
     seq_len = 40
     batch_size = 16
     hidden_size = 100
-    train_data = ndl.data.batchify(corpus.train, batch_size, device=ndl.cpu(), dtype="float32")
-    model = LanguageModel(1, len(corpus.dictionary), hidden_size, num_layers=2, device=ndl.cpu())
+    train_data = ndl.data.batchify(
+        corpus.train, batch_size, device=ndl.cpu(), dtype="float32"
+    )
+    # TODO: fix the noqa
+    model = LanguageModel(  # noqa: F405
+        1, len(corpus.dictionary), hidden_size, num_layers=2, device=ndl.cpu()
+    )
     train_ptb(model, train_data, seq_len, n_epochs=10)
