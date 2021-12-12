@@ -866,6 +866,46 @@ void ReduceSum(OpenCLArray* a, OpenCLArray* out, unsigned int reduce_size) {
 }
 
 
+std::string conv_source =
+"__kernel void conv(__global float* a, __global float* kernel_mat,"
+"__global float* out, unsigned int size, unsigned int M, unsigned int N,"
+"unsigned int K) {"
+"  size_t gid = get_global_id(0);"
+"  size_t prod = size;"
+"  if (gid < size) {"
+// compute conv out shape
+"    size_t out_rows = M - K + 1;"
+"    size_t out_cols = N - K + 1;"
+// get row cols from grid index
+"    size_t remainder = gid;"
+"    prod /= out_rows;"
+"    size_t row = remainder/prod;"
+"    remainder %= prod;"
+"    prod /= out_cols;"
+"    size_t column = remainder/prod;"
+"    float sum = 0;"
+"    int offset = row*N + column;"
+"    for(size_t i=0; i < K; i++){"
+"        for(size_t j=0; j < K; j++) {"
+"            sum += a[offset + i*N+j] * kernel_mat[i*K+j];"
+"        }"
+"    }"
+"    out[gid] = sum;"
+"  }"
+"}";
+const cl::Program conv_program(conv_source, true);
+auto conv = cl::make_kernel<cl::Buffer, cl::Buffer, cl::Buffer, unsigned int,
+unsigned int, unsigned int, unsigned int>(
+  conv_program, "conv"
+);
+void Convolution(OpenCLArray* a, OpenCLArray* kernel, OpenCLArray* out,
+unsigned int M, unsigned int N, unsigned int P) {
+  OpenCLDims dims(out->size);
+  cl::EnqueueArgs eargs(dims.global, dims.local);
+  conv(eargs, a->mem, kernel->mem, out->mem, (unsigned int)out->size, M, N, P).wait();
+}
+
+
 // // Simple setup to debug a Kernel argument definition
 // cl::Kernel kernel_fill=cl::Kernel(fill_program, "fill");
 // kernel_fill.setArg(0, *(out->mem));
@@ -964,7 +1004,7 @@ PYBIND11_MODULE(ndarray_backend_opencl, m) {
     }
   });
 
-  debug_kernel_build(scalarmaximum_source);
+  // debug_kernel_build(conv_source);
 
   m.def("fill", Fill);
   m.def("compact", Compact);
@@ -991,6 +1031,7 @@ PYBIND11_MODULE(ndarray_backend_opencl, m) {
   m.def("ewise_tanh", EwiseTanh);
 
   m.def("matmul", Matmul);
+  m.def("conv2", Convolution);
 
   m.def("reduce_max", ReduceMax);
   m.def("reduce_sum", ReduceSum);

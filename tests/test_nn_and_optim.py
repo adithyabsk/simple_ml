@@ -1,7 +1,6 @@
 import sys
 
 sys.path.append("./python")
-import mugrade
 import needle as ndl
 import needle.nn as nn
 import numpy as np
@@ -380,12 +379,6 @@ def test_op_power_scalar_backward_1():
     )
 
 
-def submit_op_power_scalar():
-    mugrade.submit(power_scalar_forward((3, 1), power=1.3))
-    mugrade.submit(power_scalar_forward((1, 3), power=-0.3))
-    mugrade.submit(power_scalar_backward((3, 3), power=-0.4))
-
-
 def test_op_logsoftmax_forward_1():
     np.testing.assert_allclose(
         logsoftmax_forward((3, 3)),
@@ -622,35 +615,6 @@ def test_init_xavier_normal_1():
     )
 
 
-def submit_init():
-    mugrade.submit(
-        init_a_tensor_of_shape(
-            (2, 5), lambda x: ndl.init.kaiming_normal(x, mode="fan_in")
-        )
-    )
-    mugrade.submit(
-        init_a_tensor_of_shape(
-            (2, 5), lambda x: ndl.init.kaiming_normal(x, mode="fan_out")
-        )
-    )
-    mugrade.submit(
-        init_a_tensor_of_shape(
-            (2, 5), lambda x: ndl.init.kaiming_uniform(x, mode="fan_in")
-        )
-    )
-    mugrade.submit(
-        init_a_tensor_of_shape(
-            (2, 5), lambda x: ndl.init.kaiming_uniform(x, mode="fan_out")
-        )
-    )
-    mugrade.submit(
-        init_a_tensor_of_shape((2, 5), lambda x: ndl.init.xavier_uniform(x, gain=0.33))
-    )
-    mugrade.submit(
-        init_a_tensor_of_shape((2, 5), lambda x: ndl.init.xavier_normal(x, gain=1.3))
-    )
-
-
 def test_nn_linear_weight_init_1():
     np.testing.assert_allclose(
         nn_linear_weight_init(),
@@ -870,11 +834,6 @@ def test_nn_relu_backward_1():
     )
 
 
-def submit_nn_relu():
-    mugrade.submit(relu_forward(2, 3))
-    mugrade.submit(relu_backward(3, 4))
-
-
 def test_nn_sequential_forward_1():
     np.testing.assert_allclose(
         sequential_forward(batches=3),
@@ -905,11 +864,6 @@ def test_nn_sequential_backward_1():
         rtol=1e-5,
         atol=1e-5,
     )
-
-
-def submit_nn_sequential():
-    mugrade.submit(sequential_forward(batches=2))
-    mugrade.submit(sequential_backward(batches=2))
 
 
 def test_nn_softmax_loss_forward_1():
@@ -1053,13 +1007,6 @@ def test_nn_softmax_loss_backward_2():
         rtol=1e-5,
         atol=1e-5,
     )
-
-
-def submit_nn_softmax_loss():
-    mugrade.submit(softmax_loss_forward(4, 9))
-    mugrade.submit(softmax_loss_forward(2, 7))
-    mugrade.submit(softmax_loss_backward(4, 9))
-    mugrade.submit(softmax_loss_backward(2, 7))
 
 
 def test_nn_layernorm_forward_1():
@@ -1626,17 +1573,6 @@ def test_nn_layernorm_backward_4():
         rtol=1e-5,
         atol=1e-5,
     )
-
-
-def submit_nn_layernorm():
-    mugrade.submit(layernorm_forward((2, 2, 2, 2), (2,)))
-    mugrade.submit(layernorm_forward((2, 2, 4, 2), (4, 2)))
-    mugrade.submit(layernorm_forward((2, 2, 2, 2), (2, 2, 2)))
-    mugrade.submit(layernorm_forward((2, 2, 3, 2), (3, 2)))
-    mugrade.submit(layernorm_backward((2, 2, 2, 2), (2,)))
-    mugrade.submit(layernorm_backward((2, 2, 4, 2), (4, 2)))
-    mugrade.submit(layernorm_backward((2, 2, 2, 2), (2, 2, 2)))
-    mugrade.submit(layernorm_backward((2, 2, 3, 2), (3, 2)))
 
 
 def test_nn_batchnorm_check_model_eval_switches_training_flag_1():
@@ -2385,26 +2321,6 @@ def test_nn_batchnorm_running_grad_2():
     )
 
 
-def submit_nn_batchnorm():
-    mugrade.submit(batchnorm_forward(2, 3))
-    mugrade.submit(batchnorm_forward(7, 1, 1))
-    mugrade.submit(batchnorm_forward(1, 2, 3, 4))
-    mugrade.submit(batchnorm_forward(4, 3, 2, 1))
-    mugrade.submit(batchnorm_forward(3, 4, affine=True))
-    mugrade.submit(batchnorm_forward(3, 1, 4, affine=True))
-    mugrade.submit(batchnorm_forward(3, 3, 1, 2, affine=True))
-    mugrade.submit(batchnorm_forward(3, 4, 1, 3, affine=True))
-    mugrade.submit(batchnorm_backward(5, 3))
-    mugrade.submit(batchnorm_backward(5, 2, 4))
-    mugrade.submit(batchnorm_backward(2, 1, 2, 3))
-    mugrade.submit(batchnorm_backward(4, 2, 4, affine=True))
-    mugrade.submit(batchnorm_running_mean(3, 1, 3))
-    mugrade.submit(batchnorm_running_mean(3, 1, 3, 2))
-    mugrade.submit(batchnorm_running_var(3, 1, 3))
-    mugrade.submit(batchnorm_running_var(3, 1, 3, 2))
-    mugrade.submit(batchnorm_running_grad(4, 3, 2))
-
-
 def test_nn_dropout_forward_1():
     np.testing.assert_allclose(
         dropout_forward((2, 3), prob=0.45),
@@ -2423,11 +2339,6 @@ def test_nn_dropout_backward_1():
         rtol=1e-5,
         atol=1e-5,
     )
-
-
-def submit_nn_dropout():
-    mugrade.submit(dropout_forward((3, 3), prob=0.4))
-    mugrade.submit(dropout_backward((3, 3), prob=0.15))
 
 
 def test_optim_sgd_vanilla_1():

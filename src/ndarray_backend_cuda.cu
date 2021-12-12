@@ -605,6 +605,44 @@ void ReduceSum(const CudaArray& a, CudaArray* out, size_t reduce_size) {
   /// END YOUR SOLUTION
 }
 
+__global__ void ConvolutionKernel(const scalar_t* a, const scalar_t* kernel,
+    scalar_t* out, size_t size, uint32_t M, uint32_t N, uint32_t K)
+{
+    size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
+    size_t prod = size;
+    if (gid < size){
+        // compute conv out shape
+        size_t out_rows = M - K + 1;
+        size_t out_cols = N - K + 1;
+
+        // get row cols from grid index
+        size_t remainder = gid;
+        prod /= out_rows;
+        size_t row = remainder/prod;
+        remainder %= prod;
+        prod /= out_cols;
+        size_t column = remainder/prod;
+
+        float sum = 0;
+        int offset = row*N + column;
+        for(size_t i=0; i < K; i++){
+            for(size_t j=0; j < K; j++) {
+                sum += a[offset + i*N+j] * kernel[i*K+j];
+            }
+        }
+        out[gid] = sum;
+    }
+}
+
+void Convolution(
+    const CudaArray& a,
+    const CudaArray& kernel,
+    CudaArray* out, uint32_t M, uint32_t N, uint32_t K) {
+  CudaDims dim = CudaOneDim(out->size);
+  ConvolutionKernel<<<dim.grid, dim.block>>>(a.ptr, kernel.ptr, out->ptr, out->size, M, N, K);
+}
+
+
 }  // namespace cuda
 }  // namespace needle
 
@@ -669,6 +707,8 @@ PYBIND11_MODULE(ndarray_backend_cuda, m) {
   m.def("ewise_tanh", EwiseTanh);
 
   m.def("matmul", Matmul);
+
+  m.def("conv2", Convolution);
 
   m.def("reduce_max", ReduceMax);
   m.def("reduce_sum", ReduceSum);

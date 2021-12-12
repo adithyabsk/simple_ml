@@ -56,6 +56,9 @@ class Device:
         raise NotImplementedError()
 
 
+# TODO: this is definitely not best practice
+#       we need to resolve this circular import issue and fix the device
+#       management
 def default_device():
     """The default computational device."""
     return _DEFAULT_DEVICE()

@@ -3,7 +3,6 @@ import sys
 sys.path.append("./python")
 import itertools
 
-import mugrade
 import needle as ndl
 import numpy as np
 import pytest
@@ -86,66 +85,3 @@ def test_ptb_dataset(batch_size, bptt, train, device):
     assert isinstance(X.cached_data, nd.NDArray)
     ntokens = len(corpus.dictionary)
     assert ntokens == 10000
-
-
-### MUGRADE ###
-
-TEST_BATCH_SIZES = [3, 5]
-TEST_BPTT = [6, 10]
-
-
-def mugrade_submit(x):
-    if isinstance(x, np.ndarray):
-        x = x.flatten()[:128]
-        # print(x)
-        mugrade.submit(x)
-    else:
-        # print(x)
-        mugrade.submit(x)
-
-
-def submit_cifar10():
-    if not ndl.cuda().enabled():
-        print("You need a GPU to run some of these tests.")
-    devices = [ndl.cpu(), ndl.cuda()]
-    for train in TRAIN:
-        dataset = ndl.data.CIFAR10Dataset("data/cifar-10-batches-py", train=train)
-        mugrade_submit(len(dataset))
-        for (device, batch_size) in itertools.product(devices, TEST_BATCH_SIZES):
-            loader = ndl.data.DataLoader(
-                dataset, batch_size, device=device, dtype="float32"
-            )
-            for (X, y) in loader:
-                break
-            mugrade_submit(len(loader))
-            mugrade_submit(X[0, :, :, :].numpy())
-            mugrade_submit(y[0].numpy())
-
-
-def submit_ptb():
-    # devices = [ndl.cpu(), ndl.cuda()] if ndl.cuda().enabled() else [ndl.cpu()]
-    devices = [ndl.cpu(), ndl.cuda()]
-
-    corpus = ndl.data.Corpus("data/ptb")
-    mugrade_submit(np.array(len(corpus.dictionary)))
-    for train in TRAIN:
-        for (device, batch_size, bptt) in itertools.product(
-            devices, TEST_BATCH_SIZES, TEST_BPTT
-        ):
-            if train:
-                data = ndl.data.batchify(
-                    corpus.train, batch_size, device=device, dtype="float32"
-                )
-            else:
-                data = ndl.data.batchify(
-                    corpus.test, batch_size, device=device, dtype="float32"
-                )
-            X, y = ndl.data.get_batch(data, np.random.randint(len(data)), bptt)
-            mugrade_submit(np.array(len(data)))
-            mugrade_submit(X[0, :].numpy())
-            mugrade_submit(y[0].numpy())
-
-
-if __name__ == "__main__":
-    submit_cifar10()
-    submit_ptb()

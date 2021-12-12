@@ -3,7 +3,6 @@
 This backend uses numpy for cached data and redirects
 all computations to corresponding numpy functions.
 """
-import needle.device
 import numpy as np
 from needle.device import Device, DLDeviceType
 from needle.ops import register_op_attr
@@ -50,10 +49,6 @@ class NumpyDevice(Device):
         # dispatch device specific compute to op.numpy_compute
         # these computation are registered below.
         return op.numpy_compute(inputs, attrs)
-
-
-# set default device to be numpy device.
-needle.device._DEFAULT_DEVICE = NumpyDevice
 
 
 def numpy_device() -> NumpyDevice:

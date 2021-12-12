@@ -442,6 +442,26 @@ void ReduceSum(const AlignedArray& a, AlignedArray* out, size_t reduce_size) {
   /// END YOUR SOLUTION
 }
 
+
+void Convolution(const AlignedArray& a, const AlignedArray& kernel,
+    AlignedArray* out, uint32_t M, uint32_t N, uint32_t K)
+{
+    size_t out_rows = M - K + 1;
+    size_t out_cols = N - K + 1;
+    for(size_t row=0; row < out_rows; row++) {
+        for(size_t column=0; column < out_cols; column++) {
+            float sum = 0;
+            int offset = row*N + column;
+            for(size_t i=0; i < K; i++){
+                for(size_t j=0; j < K; j++) {
+                    sum += a.ptr[offset + i*N+j] * kernel.ptr[i*K+j];
+                }
+            }
+            out->ptr[row*out_cols+column] = sum;
+        }
+    }
+}
+
 }  // namespace cpu
 }  // namespace needle
 
@@ -497,6 +517,7 @@ PYBIND11_MODULE(ndarray_backend_cpu, m) {
 
   m.def("matmul", Matmul);
   m.def("matmul_tiled", MatmulTiled);
+  m.def("conv2", Convolution);
 
   m.def("reduce_max", ReduceMax);
   m.def("reduce_sum", ReduceSum);
