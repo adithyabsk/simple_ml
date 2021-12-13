@@ -530,6 +530,8 @@ class ConvOp(Op):
 
 
 conv = register_op("Conv", ConvOp())
+# backward pass is the same for both conv implementations
+conv4 = register_op("Conv4", ConvOp())
 
 
 class PadOp(Op):

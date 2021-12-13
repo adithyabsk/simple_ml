@@ -630,6 +630,41 @@ class NDArray:
         else:
             raise ValueError("Convolution is not implemented on this device.")
 
+    ### Convolution
+    def conv4(self, other, stride=1):
+        # self  : n h w    c_in
+        # other : k k c_in c_out
+        assert self.ndim == 4 and other.ndim == 4
+        assert other.shape[0] == other.shape[1]
+        assert self.shape[-1] == other.shape[2]
+
+        n, h, w, c_in, c_out, k = (
+            *self.shape,
+            other.shape[-1],
+            other.shape[0],
+        )
+
+        if hasattr(self.device, "conv4"):
+            out = NDArray.make(
+                (n, (h - k) // stride + 1, (w - k) // stride + 1, c_out),
+                device=self.device,
+            )
+            self.device.conv4(
+                self.compact()._handle,
+                other.compact()._handle,
+                out._handle,
+                n,
+                h,
+                w,
+                c_in,
+                c_out,
+                k,
+                stride,
+            )
+            return out
+        else:
+            raise ValueError("Convolution is not implemented on this device.")
+
     ### Reductions, i.e., sum/max over all element or over given axis
     def reduce_view_out(self, axis):
         """ Return a view to the array set up for reduction functions and output array. """

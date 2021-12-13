@@ -14,9 +14,11 @@ np.random.seed(0)
 
 
 class ConvBN(ndl.nn.Module):
+    conv_layer = nn.Conv
+
     def __init__(self, in_channels, out_channels, kernel_size, stride, device):
         super().__init__()
-        self.conv = nn.Conv(
+        self.conv = self.conv_layer(
             in_channels, out_channels, kernel_size, stride, device=device
         )
         self.bn = nn.BatchNorm(out_channels, device=device)
@@ -26,22 +28,28 @@ class ConvBN(ndl.nn.Module):
         return self.relu(self.bn(self.conv(x)))
 
 
+class ConvBN4(ConvBN):
+    conv_layer = nn.Conv4
+
+
 class ResNet9(ndl.nn.Module):
+    convbn_layer = ConvBN
+
     def __init__(self, device=None, dtype="float32"):
         super().__init__()
         ### BEGIN YOUR SOLUTION ###
         self.first_set = nn.Sequential(
-            ConvBN(3, 16, 7, 4, device), ConvBN(16, 32, 3, 2, device)
+            self.convbn_layer(3, 16, 7, 4, device), ConvBN(16, 32, 3, 2, device)
         )
         self.second_set = nn.Sequential(
-            ConvBN(32, 32, 3, 1, device), ConvBN(32, 32, 3, 1, device)
+            self.convbn_layer(32, 32, 3, 1, device), ConvBN(32, 32, 3, 1, device)
         )
         # res_1 = nn.Residual(self.first_set)
         self.third_set = nn.Sequential(
-            ConvBN(32, 64, 3, 2, device), ConvBN(64, 128, 3, 2, device)
+            self.convbn_layer(32, 64, 3, 2, device), ConvBN(64, 128, 3, 2, device)
         )
         self.fourth_set = nn.Sequential(
-            ConvBN(128, 128, 3, 1, device), ConvBN(128, 128, 3, 1, device)
+            self.convbn_layer(128, 128, 3, 1, device), ConvBN(128, 128, 3, 1, device)
         )
         # res_2 = nn.Residual(self.third_set)
         self.output = nn.Sequential(
@@ -62,6 +70,10 @@ class ResNet9(ndl.nn.Module):
         r2 = fos + ts.broadcast_to(fos.shape)
         return self.output(r2)
         ### END YOUR SOLUTION
+
+
+class ResNet94(ResNet9):
+    convbn_layer = ConvBN4
 
 
 class LangFlatten(nn.Module):

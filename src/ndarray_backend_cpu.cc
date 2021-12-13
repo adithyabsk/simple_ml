@@ -462,6 +462,45 @@ void Convolution(const AlignedArray& a, const AlignedArray& kernel,
     }
 }
 
+void Conv4D(const AlignedArray& a, const AlignedArray& kernel,
+AlignedArray* out, uint32_t N, uint32_t H, uint32_t W, uint32_t C_in,
+uint32_t C_out, uint32_t K, uint32_t stride)
+{
+    Fill(out, 0);
+    size_t out_rows = (H - K) / stride + 1;
+    size_t out_cols = (W - K) / stride + 1;
+    for(size_t batch=0; batch < N; batch++) {
+        for(size_t chout=0; chout < C_out; chout++){
+            for(size_t chin=0; chin < C_in; chin++) {
+                for(size_t outcol=0; outcol < out_cols; outcol++){
+                    for(size_t outrow=0; outrow < out_rows; outrow++) {
+                        for(size_t k1=0; k1 < K; k1++){
+                            for(size_t k2=0; k2 < K; k2++) {
+                                out->ptr[
+                                    batch * C_out *  out_cols * out_rows
+                                    + outrow * C_out * out_cols
+                                    + outcol * C_out
+                                    + chout
+                                ] += kernel.ptr[
+                                    k1 * C_out * C_in * K
+                                    + k2 * C_out * C_in
+                                    + chin * C_out
+                                    + chout
+                                ] * a.ptr[
+                                    batch * C_in * W * H
+                                    + (outrow * stride + k1)  * C_in * W
+                                    + (outcol * stride + k2) * C_in
+                                    + chin
+                                ];
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 }  // namespace cpu
 }  // namespace needle
 
@@ -518,6 +557,7 @@ PYBIND11_MODULE(ndarray_backend_cpu, m) {
   m.def("matmul", Matmul);
   m.def("matmul_tiled", MatmulTiled);
   m.def("conv2", Convolution);
+  m.def("conv4", Conv4D);
 
   m.def("reduce_max", ReduceMax);
   m.def("reduce_sum", ReduceSum);

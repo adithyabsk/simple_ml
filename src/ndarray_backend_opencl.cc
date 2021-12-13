@@ -231,7 +231,7 @@ struct OpenCLArray {
     }
     this->size = size;
   }
-  OpenCLArray(const std::vector<uint32_t>& x) {
+  OpenCLArray(const std::vector<int32_t>& x) {
     std::vector<float> floatVec(x.begin(), x.end());
     cl_int status_code;
     this->mem = cl::Buffer(
@@ -269,7 +269,7 @@ struct OpenCLVec {
   unsigned int data[MAX_VEC_SIZE];
 };
 
-OpenCLVec VecToOpenCL(const std::vector<uint32_t>& x) {
+OpenCLVec VecToOpenCL(const std::vector<int32_t>& x) {
   OpenCLVec shape;
   if (x.size() > MAX_VEC_SIZE) throw std::runtime_error("Exceeded OpenCL supported max dimesions");
   shape.size = (unsigned int)x.size();
@@ -352,8 +352,8 @@ auto compact = cl::make_kernel<
   const cl::Buffer, unsigned int,
   unsigned int
 >(compact_program, "compact");
-void Compact(OpenCLArray* a, OpenCLArray* out, std::vector<uint32_t> shape,
-              std::vector<uint32_t> strides, size_t offset) {
+void Compact(OpenCLArray* a, OpenCLArray* out, std::vector<int32_t> shape,
+              std::vector<int32_t> strides, size_t offset) {
   OpenCLDims dims(out->size);
   const OpenCLArray shape_cl(shape);
   const OpenCLArray stride_cl(strides);
@@ -409,8 +409,8 @@ auto ewisesetitem = cl::make_kernel<
   const cl::Buffer, unsigned int,
   unsigned int
 >(ewisesetitem_program, "ewisesetitem");
-void EwiseSetitem(OpenCLArray* a, OpenCLArray* out, std::vector<uint32_t> shape,
-              std::vector<uint32_t> strides, size_t offset) {
+void EwiseSetitem(OpenCLArray* a, OpenCLArray* out, std::vector<int32_t> shape,
+              std::vector<int32_t> strides, size_t offset) {
   OpenCLDims dims(out->size);
   const OpenCLArray shape_cl(shape);
   const OpenCLArray stride_cl(strides);
@@ -466,8 +466,8 @@ auto scalarsetitem = cl::make_kernel<
   const cl::Buffer, unsigned int,
   unsigned int
 >(scalarsetitem_program, "scalarsetitem");
-void ScalarSetitem(size_t size, scalar_t val, OpenCLArray* a, std::vector<uint32_t> shape,
-              std::vector<uint32_t> strides, size_t offset) {
+void ScalarSetitem(size_t size, scalar_t val, OpenCLArray* a, std::vector<int32_t> shape,
+              std::vector<int32_t> strides, size_t offset) {
   OpenCLDims dims(size);
   const OpenCLArray shape_cl(shape);
   const OpenCLArray stride_cl(strides);
@@ -906,6 +906,68 @@ unsigned int M, unsigned int N, unsigned int P) {
 }
 
 
+std::string conv4_source =
+"__kernel void conv4(__global float* a, __global float* kernel_mat,"
+"__global float* out, unsigned int size, unsigned int N, unsigned int H,"
+"unsigned int W, unsigned int C_in, unsigned int C_out, unsigned int K,"
+"unsigned int stride)"
+"{"
+"    size_t gid = get_global_id(0);"
+"    if (gid < size){"
+"        size_t out_rows = (H - K) / stride + 1;"
+"        size_t out_cols = (W - K) / stride + 1;"
+"        size_t prod = size;"
+"        size_t remainder = gid;"
+"        prod /= N;"
+"        int batch = remainder/prod;"
+"        remainder %= prod;"
+"        prod /= out_rows;"
+"        int outrow = remainder/prod;"
+"        remainder %= prod;"
+"        prod /= out_cols;"
+"        int outcol = remainder/prod;"
+"        remainder %= prod;"
+"        prod /= C_out;"
+"        int chout = remainder/prod;"
+"        float sum = 0;"
+"        for(size_t chin=0; chin < C_in; chin++){"
+"            for(size_t k1=0; k1 < K; k1++){"
+"                for(size_t k2=0; k2 < K; k2++) {"
+"                    sum += kernel_mat["
+"                        k1 * C_out * C_in * K"
+"                        + k2 * C_out * C_in"
+"                        + chin * C_out"
+"                        + chout"
+"                    ] * a["
+"                        batch * C_in * W * H"
+"                        + (outrow * stride + k1)  * C_in * W"
+"                        + (outcol * stride + k2) * C_in"
+"                        + chin"
+"                    ];"
+"                }"
+"            }"
+"        }"
+"        out[gid] = sum;"
+"    }"
+"}";
+
+const cl::Program conv4_program(conv4_source, true);
+auto conv4 = cl::make_kernel<cl::Buffer, cl::Buffer, cl::Buffer, unsigned int,
+unsigned int, unsigned int, unsigned int, unsigned int, unsigned int,
+unsigned int, unsigned int>(
+  conv4_program, "conv4"
+);
+void Convolution4(OpenCLArray* a, OpenCLArray* kernel, OpenCLArray* out,
+unsigned int N, unsigned int H, unsigned int W, unsigned int C_in,
+unsigned int C_out, unsigned int K, unsigned int stride) {
+  OpenCLDims dims(out->size);
+  cl::EnqueueArgs eargs(dims.global, dims.local);
+  conv4(
+    eargs, a->mem, kernel->mem, out->mem, (unsigned int)out->size, N, H, W,
+    C_in, C_out, K, stride
+  ).wait();
+}
+
 // // Simple setup to debug a Kernel argument definition
 // cl::Kernel kernel_fill=cl::Kernel(fill_program, "fill");
 // kernel_fill.setArg(0, *(out->mem));
@@ -1032,6 +1094,7 @@ PYBIND11_MODULE(ndarray_backend_opencl, m) {
 
   m.def("matmul", Matmul);
   m.def("conv2", Convolution);
+  m.def("conv4", Convolution4);
 
   m.def("reduce_max", ReduceMax);
   m.def("reduce_sum", ReduceSum);

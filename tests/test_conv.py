@@ -459,11 +459,12 @@ conv_forward_params = [
 
 @pytest.mark.parametrize("s,cin,cout,k,stride", conv_forward_params)
 @pytest.mark.parametrize("device", _DEVICES)
-def test_nn_conv_forward(s, cin, cout, k, stride, device):
+@pytest.mark.parametrize("conv_layer", [ndl.nn.Conv, ndl.nn.Conv4])
+def test_nn_conv_forward(s, cin, cout, k, stride, device, conv_layer):
     np.random.seed(0)
     import torch
 
-    f = ndl.nn.Conv(cin, cout, k, stride=stride, device=device)
+    f = conv_layer(cin, cout, k, stride=stride, device=device)
     x = ndl.ops.randu((10, cin, s, s), device=device)
 
     g = torch.nn.Conv2d(cin, cout, k, stride=stride, padding=k // 2)
@@ -487,11 +488,12 @@ conv_back_params = [
 
 @pytest.mark.parametrize("s,cin,cout,k,stride", conv_back_params)
 @pytest.mark.parametrize("device", _DEVICES)
-def test_nn_conv_backward(s, cin, cout, k, stride, device):
+@pytest.mark.parametrize("conv_layer", [ndl.nn.Conv, ndl.nn.Conv4])
+def test_nn_conv_backward(s, cin, cout, k, stride, device, conv_layer):
     np.random.seed(0)
     import torch
 
-    f = ndl.nn.Conv(cin, cout, k, stride=stride, device=device)
+    f = conv_layer(cin, cout, k, stride=stride, device=device)
     x = ndl.ops.randu((1, cin, s, s), requires_grad=True, device=device)
 
     g = torch.nn.Conv2d(cin, cout, k, stride=stride, padding=k // 2)
@@ -546,7 +548,8 @@ op_conv_shapes = [
 @pytest.mark.parametrize("Z_shape, W_shape, stride, padding", op_conv_shapes)
 @pytest.mark.parametrize("device", _DEVICES)
 @pytest.mark.parametrize("backward", [True, False], ids=["backward", "forward"])
-def test_op_conv(Z_shape, W_shape, stride, padding, backward, device):
+@pytest.mark.parametrize("conv_op", [ndl.conv, ndl.conv4])
+def test_op_conv(Z_shape, W_shape, stride, padding, backward, device, conv_op):
     np.random.seed(0)
     import torch
 
@@ -556,7 +559,7 @@ def test_op_conv(Z_shape, W_shape, stride, padding, backward, device):
     _W = _W.astype(np.float32)
     Z = ndl.Tensor(_Z, device=device)
     W = ndl.Tensor(_W, device=device)
-    y = ndl.conv(Z, W, padding=padding, stride=stride)
+    y = conv_op(Z, W, padding=padding, stride=stride)
     y2 = y.sum()
     if backward:
         y2.backward()
@@ -584,7 +587,8 @@ def test_op_conv(Z_shape, W_shape, stride, padding, backward, device):
 
 
 @pytest.mark.parametrize("device", _DEVICES)
-def test_train_cifar10(device):
+@pytest.mark.parametrize("model_name", ["ResNet9", "ResNet94"])
+def test_train_cifar10(device, model_name):
     np.random.seed(0)
     dataset = ndl.data.CIFAR10Dataset("./data/cifar-10-batches-py", train=True)
     dataloader = ndl.data.DataLoader(
@@ -596,10 +600,13 @@ def test_train_cifar10(device):
         device=device,
         dtype="float32",
     )
-    from apps.models import ResNet9
+
+    import apps.models as mod
+
+    resnet_model = getattr(mod, model_name)
 
     np.random.seed(0)
-    model = ResNet9(device=device, dtype="float32")
+    model = resnet_model(device=device, dtype="float32")
     out = one_iter_of_cifar10_training(
         dataloader,
         model,

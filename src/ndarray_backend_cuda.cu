@@ -642,6 +642,71 @@ void Convolution(
   ConvolutionKernel<<<dim.grid, dim.block>>>(a.ptr, kernel.ptr, out->ptr, out->size, M, N, K);
 }
 
+__global__ void Convolution4Kernel(const scalar_t* a, const scalar_t* kernel,
+scalar_t* out, size_t size, uint32_t N, uint32_t H, uint32_t W, uint32_t C_in,
+uint32_t C_out, uint32_t K, uint32_t stride)
+{
+    size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
+    if (gid < size){
+        // compute conv out shape
+        size_t out_rows = (H - K) / stride + 1;
+        size_t out_cols = (W - K) / stride + 1;
+
+        // get row cols from grid index
+        size_t prod = size;
+        size_t remainder = gid;
+
+        prod /= N;
+        int batch = remainder/prod;
+        remainder %= prod;
+
+        prod /= out_rows;
+        int outrow = remainder/prod;
+        remainder %= prod;
+
+        prod /= out_cols;
+        int outcol = remainder/prod;
+        remainder %= prod;
+
+        prod /= C_out;
+        int chout = remainder/prod;
+
+        float sum = 0;
+        for(size_t chin=0; chin < C_in; chin++){
+            for(size_t k1=0; k1 < K; k1++){
+                for(size_t k2=0; k2 < K; k2++) {
+                    sum += kernel[
+                        k1 * C_out * C_in * K
+                        + k2 * C_out * C_in
+                        + chin * C_out
+                        + chout
+                    ] * a[
+                        batch * C_in * W * H
+                        + (outrow * stride + k1)  * C_in * W
+                        + (outcol * stride + k2) * C_in
+                        + chin
+                    ];
+                }
+            }
+        }
+        // out[
+        //     batch * C_out *  out_cols * out_rows
+        //     + outrow * C_out * out_cols
+        //     + outcol * C_out
+        //     + chout
+        // ]
+        out[gid] = sum;
+    }
+}
+
+void Convolution4(const CudaArray& a, const CudaArray& kernel, CudaArray* out,
+uint32_t N, uint32_t H, uint32_t W, uint32_t C_in, uint32_t C_out, uint32_t K,
+uint32_t stride) {
+  CudaDims dim = CudaOneDim(out->size);
+  Convolution4Kernel<<<dim.grid, dim.block>>>(a.ptr, kernel.ptr, out->ptr,
+  out->size, N, H, W, C_in, C_out, K, stride);
+}
+
 
 }  // namespace cuda
 }  // namespace needle
@@ -709,6 +774,7 @@ PYBIND11_MODULE(ndarray_backend_cuda, m) {
   m.def("matmul", Matmul);
 
   m.def("conv2", Convolution);
+  m.def("conv4", Convolution4);
 
   m.def("reduce_max", ReduceMax);
   m.def("reduce_sum", ReduceSum);

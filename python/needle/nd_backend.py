@@ -480,3 +480,28 @@ def conv(inputs, attrs):
     out = A @ weight.reshape((K * K * C_in, C_out))
     return out.reshape((N, (H - K) // stride + 1, (W - K) // stride + 1, C_out))
     ### END YOUR SOLUTION
+
+
+@register_nd_compute("Conv4")
+def conv4(inputs, attrs):
+    padding = attrs["padding"]
+    stride = attrs["stride"]
+    if stride is None:
+        stride = 1
+    tensor = inputs[0]
+    weight = inputs[1]
+    pad_axes = ((0, 0), (padding, padding), (padding, padding), (0, 0))
+    Z = tensor.pad(axes=pad_axes)
+    N, H, W, C_in = Z.shape
+    K, K_, C_in_, C_out = weight.shape
+    if K != K_:
+        raise ValueError(f"weight kernel sizes must be equal ({K} != {K_})")
+    if C_in_ != C_in:
+        raise ValueError(f"channel in must match ({C_in} != {C_in_})")
+
+    Ns, Hs, Ws, Cs = Z.strides
+
+    if not hasattr(tensor, "conv4"):
+        raise ValueError("tensor does not have c++ conv implementation")
+    return Z.conv4(weight, stride)
+    ### END YOUR SOLUTION

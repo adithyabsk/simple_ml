@@ -356,6 +356,8 @@ class Conv(Module):
     Only supports square kernels
     """
 
+    conv_op = ops.conv
+
     def __init__(
         self,
         in_channels,
@@ -404,7 +406,7 @@ class Conv(Module):
         if H != W:
             raise ValueError("Cannot handle non-square inputs")
         padding = (self.kernel_size - 1) // 2
-        y = ops.conv(x, self.weight, padding=padding, stride=self.stride)
+        y = self.conv_op(x, self.weight, padding=padding, stride=self.stride)
         if self.bias is not None:
             bias_shape = [1] * len(y.shape)
             bias_shape[-1] = self.bias.shape[0]
@@ -413,6 +415,10 @@ class Conv(Module):
         y = y.permute((0, 3, 1, 2))
         return y
         ### END YOUR SOLUTION
+
+
+class Conv4(Conv):
+    conv_op = ops.conv4
 
 
 class RNNCell(Module):
