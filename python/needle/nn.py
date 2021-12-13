@@ -187,83 +187,139 @@ class BatchNorm(Module):
         self.eps = eps
         self.momentum = momentum
         ### BEGIN YOUR SOLUTION
-        self.weight = Parameter(ops.ones(shape=(dim,), dtype=dtype, device=device))
-        self.bias = Parameter(ops.zeros(shape=(dim,), dtype=dtype, device=device))
-        self.running_mean = ops.zeros(shape=(dim,), dtype=dtype, device=device)
-        self.running_var = ops.ones(shape=(dim,), dtype=dtype, device=device)
+        # raise NotImplementedError()
+        self.device = device
+        self.dtype = dtype
+        self.weight = Parameter(ops.ones_like(ops.zeros((dim,), device=self.device, dtype=self.dtype)))
+        self.bias = Parameter(ops.zeros_like(self.weight, device=self.device))
+        self.running_mean = ops.zeros_like(self.weight, device=self.device)
+        self.running_var = ops.ones_like(self.weight, device=self.device)
         ### END YOUR SOLUTION
-
-    def get_dims_and_sum_dims(self, x: Tensor) -> Tuple:
-        dims = list(x.shape)
-        sum_dims = list(range(len(dims)))
-        del dims[1]
-        del sum_dims[1]  # drop the first dim
-        return tuple(dims), tuple(sum_dims)
-
-    def expectation(self, x: Tensor) -> Tensor:
-        dims, sum_dims = self.get_dims_and_sum_dims(x)
-        div_size = reduce(operator.mul, dims)
-
-        ret_shape = [1] * len(x.shape)
-        ret_shape[1] = x.shape[1]
-        ret_shape = tuple(ret_shape)
-
-        return (x.sum(axes=sum_dims) / div_size).reshape(ret_shape)
-
-    def variance(self, exp_val, x: Tensor) -> Tensor:
-        dims, sum_dims = self.get_dims_and_sum_dims(x)
-        div_size = reduce(operator.mul, dims)
-
-        ret_shape = [1] * len(x.shape)
-        ret_shape[1] = x.shape[1]
-        ret_shape = tuple(ret_shape)
-
-        return (
-            ((x - self.match_output_shape(exp_val, x.shape)) ** 2).sum(axes=sum_dims)
-            / (div_size - 1)
-        ).reshape(ret_shape)
-
-    def match_output_shape(self, x: Tensor, shape: Tuple) -> Tensor:
-        new_shape = (1,) + (self.dim,) + (len(shape) - 2) * (1,)
-        return ops.broadcast_to(ops.reshape(x, shape=new_shape), shape=shape)
 
     def forward(self, x: Tensor) -> Tensor:
         ### BEGIN YOUR SOLUTION
-        if self.training:
-            exp_val = self.expectation(x)
-            # E((x-E(x))^2)
-            var_val_unbiased = self.expectation(
-                (x - ops.broadcast_to(self.expectation(x), shape=x.shape)) ** 2
-            )
-            var_val_biased = self.variance(exp_val, x)
-
-            self.running_mean = (
-                1 - self.momentum
-            ) * self.running_mean + self.momentum * exp_val.reshape(
-                self.running_mean.shape
-            )
-            self.running_var = (
-                1 - self.momentum
-            ) * self.running_var + self.momentum * var_val_biased.reshape(
-                self.running_var.shape
-            )
-
-            numer = x - self.match_output_shape(exp_val, shape=x.shape)
-            numer = self.match_output_shape(self.weight, shape=numer.shape) * numer
-            denom = (self.eps + var_val_unbiased) ** (1 / 2)
-            y = numer / self.match_output_shape(denom, shape=numer.shape)
+        # raise NotImplementedError()
+        original_shape = x.shape
+        if len(x.shape) == 2:
+            x = x.reshape((x.shape[0], x.shape[1], 1, 1))
+        elif len(x.shape) == 3:
+            x = x.reshape((x.shape[0], x.shape[1], x.shape[2], 1))
+        assert len(x.shape) == 4
+        assert x.shape[1] == self.dim
+        rmr = self.running_mean.reshape((1, self.dim, 1, 1))
+        rvr = self.running_var.reshape((1, self.dim, 1, 1))
+        rmb = ops.broadcast_to(rmr, shape=x.shape)
+        rvb = ops.broadcast_to(rvr, shape=x.shape)
+        if not self.training:
+            x_d = x - rmb
+            sigma = (rvb + self.eps) ** (1/2)
         else:
-            numer = x - self.match_output_shape(self.running_mean, shape=x.shape)
-            numer = self.match_output_shape(self.weight, shape=numer.shape) * numer
-            denom = (self.eps + self.running_var) ** (1 / 2)
-            y = numer / self.match_output_shape(denom, shape=numer.shape)
-
-        # we multiply the weight above because of a numerical stability quirk
-        # in the grading
-        # https://forum.dlsyscourse.org/t/tiny-numerical-error-in-batchnorm/417/2?u=adithya
-        y = y + self.match_output_shape(self.bias, shape=y.shape)
-        return y
+            axes = (0, 2, 3)
+            N = np.prod(np.array(x.shape).take(axes))
+            mu = ops.summation(x, axes=axes) / N
+            mu = ops.reshape(mu, shape=(1, self.dim, 1, 1))
+            mu_broad = ops.broadcast_to(mu, shape=x.shape)
+            squared = (x - mu_broad) ** 2
+            var = ops.summation(squared, axes=axes) / N
+            var = ops.reshape(var, shape=(1, self.dim, 1, 1))
+            varu = ((var * N) / (N - 1)).data
+            varu.data = ops.reshape(varu.data, shape=(1, self.dim, 1, 1))
+            sigma = (var + self.eps) ** (1/2)
+            sigma = ops.broadcast_to(sigma, shape=x.shape)
+            x_d = (x - mu_broad)
+            self.running_mean.data = ops.reshape((1.0 - self.momentum) * rmr + self.momentum * mu, shape=(self.dim,)).data
+            self.running_var.data = ops.reshape((1.0 - self.momentum) * rvr + self.momentum * varu, shape=(self.dim,)).data
+        w_broad = ops.broadcast_to(self.weight.reshape((1, self.dim, 1, 1)), shape=x.shape)
+        b_broad = ops.broadcast_to(self.bias.reshape((1, self.dim, 1, 1)), shape=x.shape)
+        result = (w_broad * x_d) / sigma + b_broad
+        return result.reshape(original_shape)
         ### END YOUR SOLUTION
+
+
+# class BatchNorm(Module):
+#     def __init__(self, dim, eps=1e-5, momentum=0.1, device=None, dtype="float32"):
+#         super().__init__()
+#         self.dim = dim
+#         self.eps = eps
+#         self.momentum = momentum
+#         ### BEGIN YOUR SOLUTION
+#         self.weight = Parameter(ops.ones(shape=(dim,), dtype=dtype, device=device))
+#         self.bias = Parameter(ops.zeros(shape=(dim,), dtype=dtype, device=device))
+#         self.running_mean = ops.zeros(shape=(dim,), dtype=dtype, device=device)
+#         self.running_var = ops.ones(shape=(dim,), dtype=dtype, device=device)
+#         ### END YOUR SOLUTION
+
+#     def get_dims_and_sum_dims(self, x: Tensor) -> Tuple:
+#         dims = list(x.shape)
+#         sum_dims = list(range(len(dims)))
+#         del dims[1]
+#         del sum_dims[1]  # drop the first dim
+#         return tuple(dims), tuple(sum_dims)
+
+#     def expectation(self, x: Tensor) -> Tensor:
+#         dims, sum_dims = self.get_dims_and_sum_dims(x)
+#         div_size = reduce(operator.mul, dims)
+
+#         ret_shape = [1] * len(x.shape)
+#         ret_shape[1] = x.shape[1]
+#         ret_shape = tuple(ret_shape)
+
+#         return (x.sum(axes=sum_dims) / div_size).reshape(ret_shape)
+
+#     def variance(self, exp_val, x: Tensor) -> Tensor:
+#         dims, sum_dims = self.get_dims_and_sum_dims(x)
+#         div_size = reduce(operator.mul, dims)
+
+#         ret_shape = [1] * len(x.shape)
+#         ret_shape[1] = x.shape[1]
+#         ret_shape = tuple(ret_shape)
+
+#         return (
+#             ((x - self.match_output_shape(exp_val, x.shape)) ** 2).sum(axes=sum_dims)
+#             / (div_size - 1)
+#         ).reshape(ret_shape)
+
+#     def match_output_shape(self, x: Tensor, shape: Tuple) -> Tensor:
+#         new_shape = (1,) + (self.dim,) + (len(shape) - 2) * (1,)
+#         return ops.broadcast_to(ops.reshape(x, shape=new_shape), shape=shape)
+
+#     def forward(self, x: Tensor) -> Tensor:
+#         ### BEGIN YOUR SOLUTION
+#         if self.training:
+#             exp_val = self.expectation(x)
+#             # E((x-E(x))^2)
+#             var_val_unbiased = self.expectation(
+#                 (x - ops.broadcast_to(self.expectation(x), shape=x.shape)) ** 2
+#             )
+#             var_val_biased = self.variance(exp_val, x)
+
+#             self.running_mean = (
+#                 1 - self.momentum
+#             ) * self.running_mean + self.momentum * exp_val.reshape(
+#                 self.running_mean.shape
+#             )
+#             self.running_var = (
+#                 1 - self.momentum
+#             ) * self.running_var + self.momentum * var_val_biased.reshape(
+#                 self.running_var.shape
+#             )
+
+#             numer = x - self.match_output_shape(exp_val, shape=x.shape)
+#             numer = self.match_output_shape(self.weight, shape=numer.shape) * numer
+#             denom = (self.eps + var_val_unbiased) ** (1 / 2)
+#             y = numer / self.match_output_shape(denom, shape=numer.shape)
+#         else:
+#             numer = x - self.match_output_shape(self.running_mean, shape=x.shape)
+#             numer = self.match_output_shape(self.weight, shape=numer.shape) * numer
+#             denom = (self.eps + self.running_var) ** (1 / 2)
+#             y = numer / self.match_output_shape(denom, shape=numer.shape)
+
+#         # we multiply the weight above because of a numerical stability quirk
+#         # in the grading
+#         # https://forum.dlsyscourse.org/t/tiny-numerical-error-in-batchnorm/417/2?u=adithya
+#         y = y + self.match_output_shape(self.bias, shape=y.shape)
+#         return y
+#         ### END YOUR SOLUTION
 
 
 class LayerNorm(Module):

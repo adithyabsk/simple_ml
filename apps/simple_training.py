@@ -5,6 +5,7 @@ sys.path.append("../python")
 import needle as ndl
 import needle.nn as nn
 import numpy as np
+import time
 from models import *  # noqa: F403
 from tqdm import tqdm
 
@@ -87,9 +88,25 @@ def train_cifar10(
     ### BEGIN YOUR SOLUTION
     # raise NotImplementedError()
     opt = optimizer(model.parameters(), lr=lr, weight_decay=weight_decay)
-    for _ in tqdm(range(n_epochs), position=1, leave=True):
-        avg_acc, avg_loss = epoch_general_cifar10(dataloader, model, loss_fn=loss_fn(), opt=opt)
-    return avg_acc, avg_loss
+    t0 = time.time()
+    trajectories = {'train_acc': [],
+                    'train_loss': [],
+                    'val_acc': [],
+                    'val_loss': [],
+                    'elapsed_time': []}
+    for i in tqdm(range(n_epochs), position=1, leave=True):
+        train_acc, train_loss = epoch_general_cifar10(dataloader, model, loss_fn=loss_fn(), opt=opt)
+        elapsed_time = time.time() - t0
+        val_acc, val_loss = evaluate_cifar10(model, dataloader, loss_fn=loss_fn)
+        print('[Epoch {}] train_acc: {:.03f}, train_loss: {:.03f}, val_acc: {:.03f}, val_loss: {:.03f}'.format(i, train_acc, train_loss, val_acc, val_loss))
+        t0 = time.time() - elapsed_time
+        trajectories['train_acc'].append(train_acc)
+        trajectories['train_loss'].append(train_loss)
+        trajectories['val_acc'].append(val_acc)
+        trajectories['val_loss'].append(val_loss)
+        trajectories['elapsed_time'].append(elapsed_time)
+
+    return train_acc, train_loss, trajectories
     ### END YOUR SOLUTION
 
 
