@@ -698,24 +698,23 @@ class NDArray:
         Note: compact() before returning.
         """
         ### BEGIN YOUR SOLUTION
-        return array(np.flip(self.numpy(), axes), device=self.device).compact()
-        # if axes is None:
-        #     axes = range(len(self.shape))
-        # offset = 0
-        # acc_prod = 1
-        # strides = list(self.strides)
-        # for i, r in reversed(list(enumerate(self.shape))):
-        #     acc_prod *= r
-        #     if i in axes:
-        #         strides[i] *= -1
-        #         offset += strides[i] + acc_prod
-        # return NDArray.make(
-        #     self.shape,
-        #     strides=strides,
-        #     device=self.device,
-        #     handle=self._handle,
-        #     offset=offset,
-        # ).compact()
+        if axes is None:
+            axes = range(len(self.shape))
+        offset = 0
+        acc_prod = 1
+        strides = list(self.strides)
+        for i, r in reversed(list(enumerate(self.shape))):
+            acc_prod *= r
+            if i in axes:
+                strides[i] *= -1
+                offset += strides[i] + acc_prod
+        return NDArray.make(
+            self.shape,
+            strides=strides,
+            device=self.device,
+            handle=self._handle,
+            offset=offset,
+        ).compact()
         ### END YOUR SOLUTION
 
     def pad(self, axes):
