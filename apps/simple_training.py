@@ -61,7 +61,8 @@ def epoch_general_cifar10(dataloader, model, loss_fn=None, opt=None):
 
 def train_cifar10(
     model,
-    dataloader,
+    train_dataloader,
+    val_dataloader,
     n_epochs=1,
     optimizer=ndl.optim.Adam,
     lr=0.001,
@@ -95,9 +96,9 @@ def train_cifar10(
                     'val_loss': [],
                     'elapsed_time': []}
     for i in tqdm(range(n_epochs), position=1, leave=True):
-        train_acc, train_loss = epoch_general_cifar10(dataloader, model, loss_fn=loss_fn(), opt=opt)
+        train_acc, train_loss = epoch_general_cifar10(train_dataloader, model, loss_fn=loss_fn(), opt=opt)
         elapsed_time = time.time() - t0
-        val_acc, val_loss = evaluate_cifar10(model, dataloader, loss_fn=loss_fn)
+        val_acc, val_loss = evaluate_cifar10(model, val_dataloader, loss_fn=loss_fn)
         print('[Epoch {}] train_acc: {:.03f}, train_loss: {:.03f}, val_acc: {:.03f}, val_loss: {:.03f}'.format(i, train_acc, train_loss, val_acc, val_loss))
         t0 = time.time() - elapsed_time
         trajectories['train_acc'].append(train_acc)
