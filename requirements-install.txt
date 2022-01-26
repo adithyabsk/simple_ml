@@ -1,4 +1,6 @@
 numpy
-pytorch
-pybind
-# TODO: add more requirements
+torch
+torchvision
+torchaudio
+pybind11
+tqdm

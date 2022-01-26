@@ -1,10 +1,9 @@
 """The module."""
-from __future__ import annotations
 
 import math
 import operator
 from functools import reduce
-from typing import List, Tuple
+from typing import List
 
 import needle.init as init
 import numpy as np
@@ -190,7 +189,9 @@ class BatchNorm(Module):
         # raise NotImplementedError()
         self.device = device
         self.dtype = dtype
-        self.weight = Parameter(ops.ones_like(ops.zeros((dim,), device=self.device, dtype=self.dtype)))
+        self.weight = Parameter(
+            ops.ones_like(ops.zeros((dim,), device=self.device, dtype=self.dtype))
+        )
         self.bias = Parameter(ops.zeros_like(self.weight, device=self.device))
         self.running_mean = ops.zeros_like(self.weight, device=self.device)
         self.running_var = ops.ones_like(self.weight, device=self.device)
@@ -212,7 +213,7 @@ class BatchNorm(Module):
         rvb = ops.broadcast_to(rvr, shape=x.shape)
         if not self.training:
             x_d = x - rmb
-            sigma = (rvb + self.eps) ** (1/2)
+            sigma = (rvb + self.eps) ** (1 / 2)
         else:
             axes = (0, 2, 3)
             N = np.prod(np.array(x.shape).take(axes))
@@ -224,13 +225,21 @@ class BatchNorm(Module):
             var = ops.reshape(var, shape=(1, self.dim, 1, 1))
             varu = ((var * N) / (N - 1)).data
             varu.data = ops.reshape(varu.data, shape=(1, self.dim, 1, 1))
-            sigma = (var + self.eps) ** (1/2)
+            sigma = (var + self.eps) ** (1 / 2)
             sigma = ops.broadcast_to(sigma, shape=x.shape)
-            x_d = (x - mu_broad)
-            self.running_mean.data = ops.reshape((1.0 - self.momentum) * rmr + self.momentum * mu, shape=(self.dim,)).data
-            self.running_var.data = ops.reshape((1.0 - self.momentum) * rvr + self.momentum * varu, shape=(self.dim,)).data
-        w_broad = ops.broadcast_to(self.weight.reshape((1, self.dim, 1, 1)), shape=x.shape)
-        b_broad = ops.broadcast_to(self.bias.reshape((1, self.dim, 1, 1)), shape=x.shape)
+            x_d = x - mu_broad
+            self.running_mean.data = ops.reshape(
+                (1.0 - self.momentum) * rmr + self.momentum * mu, shape=(self.dim,)
+            ).data
+            self.running_var.data = ops.reshape(
+                (1.0 - self.momentum) * rvr + self.momentum * varu, shape=(self.dim,)
+            ).data
+        w_broad = ops.broadcast_to(
+            self.weight.reshape((1, self.dim, 1, 1)), shape=x.shape
+        )
+        b_broad = ops.broadcast_to(
+            self.bias.reshape((1, self.dim, 1, 1)), shape=x.shape
+        )
         result = (w_broad * x_d) / sigma + b_broad
         return result.reshape(original_shape)
         ### END YOUR SOLUTION
