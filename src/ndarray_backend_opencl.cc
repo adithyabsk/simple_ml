@@ -1,4 +1,6 @@
 #define __CL_ENABLE_EXCEPTIONS
+#define CL_HPP_TARGET_OPENCL_VERSION 110
+#define CL_HPP_MINIMUM_OPENCL_VERSION 110
 #ifdef __APPLE__
 #include <OpenCL/cl.hpp>
 #else
@@ -314,7 +316,7 @@ std::string fill_source =
 "  if (gid < size) out[gid] = val;"
 "}";
 const cl::Program fill_program(fill_source, true);
-auto fill = cl::make_kernel<cl::Buffer, float, unsigned int>(
+auto fill = cl::compatibility::make_kernel<cl::Buffer, float, unsigned int>(
   fill_program, "fill"
 );
 void Fill(OpenCLArray* out, float val) {
@@ -349,7 +351,7 @@ std::string compact_source =
 "  }"
 "}";
 const cl::Program compact_program(compact_source, true);
-auto compact = cl::make_kernel<
+auto compact = cl::compatibility::make_kernel<
   cl::Buffer, cl::Buffer, unsigned int,
   const cl::Buffer, unsigned int,
   const cl::Buffer, unsigned int,
@@ -406,7 +408,7 @@ std::string ewisesetitem_source =
 "  }"
 "}";
 const cl::Program ewisesetitem_program(ewisesetitem_source, true);
-auto ewisesetitem = cl::make_kernel<
+auto ewisesetitem = cl::compatibility::make_kernel<
   cl::Buffer, cl::Buffer, unsigned int,
   const cl::Buffer, unsigned int,
   const cl::Buffer, unsigned int,
@@ -463,7 +465,7 @@ std::string scalarsetitem_source =
 "  }"
 "}";
 const cl::Program scalarsetitem_program(scalarsetitem_source, true);
-auto scalarsetitem = cl::make_kernel<
+auto scalarsetitem = cl::compatibility::make_kernel<
   cl::Buffer, float, unsigned int,
   const cl::Buffer, unsigned int,
   const cl::Buffer, unsigned int,
@@ -501,7 +503,7 @@ std::string ewiseadd_source =
 "  if (gid < size) out[gid] = a[gid] + b[gid];"
 "}";
 const cl::Program ewiseadd_program(ewiseadd_source, true);
-auto ewiseadd = cl::make_kernel<cl::Buffer, cl::Buffer, cl::Buffer, unsigned int>(
+auto ewiseadd = cl::compatibility::make_kernel<cl::Buffer, cl::Buffer, cl::Buffer, unsigned int>(
   ewiseadd_program, "ewiseadd"
 );
 void EwiseAdd(OpenCLArray* a, OpenCLArray* b, OpenCLArray* out) {
@@ -531,7 +533,7 @@ std::string scalaradd_source =
 "  if (gid < size) out[gid] = a[gid] + val;"
 "}";
 const cl::Program scalaradd_program(scalaradd_source, true);
-auto scalaradd = cl::make_kernel<cl::Buffer, float, cl::Buffer, unsigned int>(
+auto scalaradd = cl::compatibility::make_kernel<cl::Buffer, float, cl::Buffer, unsigned int>(
   scalaradd_program, "scalaradd"
 );
 void ScalarAdd(OpenCLArray* a, float val, OpenCLArray* out) {
@@ -569,7 +571,7 @@ std::string ewisemul_source =
 "  if (gid < size) out[gid] = a[gid] * b[gid];"
 "}";
 const cl::Program ewisemul_program(ewisemul_source, true);
-auto ewisemul = cl::make_kernel<cl::Buffer, cl::Buffer, cl::Buffer, unsigned int>(
+auto ewisemul = cl::compatibility::make_kernel<cl::Buffer, cl::Buffer, cl::Buffer, unsigned int>(
   ewisemul_program, "ewisemul"
 );
 void EwiseMul(OpenCLArray* a, OpenCLArray* b, OpenCLArray* out) {
@@ -585,7 +587,7 @@ std::string scalarmul_source =
 "  if (gid < size) out[gid] = a[gid] * val;"
 "}";
 const cl::Program scalarmul_program(scalarmul_source, true);
-auto scalarmul = cl::make_kernel<cl::Buffer, float, cl::Buffer, unsigned int>(
+auto scalarmul = cl::compatibility::make_kernel<cl::Buffer, float, cl::Buffer, unsigned int>(
   scalarmul_program, "scalarmul"
 );
 void ScalarMul(OpenCLArray* a, float val, OpenCLArray* out) {
@@ -601,7 +603,7 @@ std::string ewisediv_source =
 "  if (gid < size) out[gid] = a[gid] / b[gid];"
 "}";
 const cl::Program ewisediv_program(ewisediv_source, true);
-auto ewisediv = cl::make_kernel<cl::Buffer, cl::Buffer, cl::Buffer, unsigned int>(
+auto ewisediv = cl::compatibility::make_kernel<cl::Buffer, cl::Buffer, cl::Buffer, unsigned int>(
   ewisediv_program, "ewisediv"
 );
 void EwiseDiv(OpenCLArray* a, OpenCLArray* b, OpenCLArray* out) {
@@ -617,7 +619,7 @@ std::string scalardiv_source =
 "  if (gid < size) out[gid] = a[gid] / val;"
 "}";
 const cl::Program scalardiv_program(scalardiv_source, true);
-auto scalardiv = cl::make_kernel<cl::Buffer, float, cl::Buffer, unsigned int>(
+auto scalardiv = cl::compatibility::make_kernel<cl::Buffer, float, cl::Buffer, unsigned int>(
   scalardiv_program, "scalardiv"
 );
 void ScalarDiv(OpenCLArray* a, float val, OpenCLArray* out) {
@@ -633,7 +635,7 @@ std::string scalarpower_source =
 "  if (gid < size) out[gid] = pow(a[gid], val);"
 "}";
 const cl::Program scalarpower_program(scalarpower_source, true);
-auto scalarpower = cl::make_kernel<cl::Buffer, float, cl::Buffer, unsigned int>(
+auto scalarpower = cl::compatibility::make_kernel<cl::Buffer, float, cl::Buffer, unsigned int>(
   scalarpower_program, "scalarpower"
 );
 void ScalarPower(OpenCLArray* a, float val, OpenCLArray* out) {
@@ -649,7 +651,7 @@ std::string ewisemaximum_source =
 "  if (gid < size) out[gid] = max(a[gid], b[gid]);"
 "}";
 const cl::Program ewisemaximum_program(ewisemaximum_source, true);
-auto ewisemaximum = cl::make_kernel<cl::Buffer, cl::Buffer, cl::Buffer, unsigned int>(
+auto ewisemaximum = cl::compatibility::make_kernel<cl::Buffer, cl::Buffer, cl::Buffer, unsigned int>(
   ewisemaximum_program, "ewisemaximum"
 );
 void EwiseMaximum(OpenCLArray* a, OpenCLArray* b, OpenCLArray* out) {
@@ -665,7 +667,7 @@ std::string scalarmaximum_source =
 "  if (gid < size) out[gid] = max(a[gid], val);"
 "}";
 const cl::Program scalarmaximum_program(scalarmaximum_source, true);
-auto scalarmaximum = cl::make_kernel<cl::Buffer, float, cl::Buffer, unsigned int>(
+auto scalarmaximum = cl::compatibility::make_kernel<cl::Buffer, float, cl::Buffer, unsigned int>(
   scalarmaximum_program, "scalarmaximum"
 );
 void ScalarMaximum(OpenCLArray* a, float val, OpenCLArray* out) {
@@ -681,7 +683,7 @@ std::string ewiseeq_source =
 "  if (gid < size) out[gid] = a[gid] == b[gid];"
 "}";
 const cl::Program ewiseeq_program(ewiseeq_source, true);
-auto ewiseeq = cl::make_kernel<cl::Buffer, cl::Buffer, cl::Buffer, unsigned int>(
+auto ewiseeq = cl::compatibility::make_kernel<cl::Buffer, cl::Buffer, cl::Buffer, unsigned int>(
   ewiseeq_program, "ewiseeq"
 );
 void EwiseEq(OpenCLArray* a, OpenCLArray* b, OpenCLArray* out) {
@@ -697,7 +699,7 @@ std::string scalareq_source =
 "  if (gid < size) out[gid] = a[gid] == val;"
 "}";
 const cl::Program scalareq_program(scalareq_source, true);
-auto scalareq = cl::make_kernel<cl::Buffer, float, cl::Buffer, unsigned int>(
+auto scalareq = cl::compatibility::make_kernel<cl::Buffer, float, cl::Buffer, unsigned int>(
   scalareq_program, "scalareq"
 );
 void ScalarEq(OpenCLArray* a, float val, OpenCLArray* out) {
@@ -713,7 +715,7 @@ std::string ewisege_source =
 "  if (gid < size) out[gid] = a[gid] >= b[gid];"
 "}";
 const cl::Program ewisege_program(ewisege_source, true);
-auto ewisege = cl::make_kernel<cl::Buffer, cl::Buffer, cl::Buffer, unsigned int>(
+auto ewisege = cl::compatibility::make_kernel<cl::Buffer, cl::Buffer, cl::Buffer, unsigned int>(
   ewisege_program, "ewisege"
 );
 void EwiseGe(OpenCLArray* a, OpenCLArray* b, OpenCLArray* out) {
@@ -729,7 +731,7 @@ std::string scalarge_source =
 "  if (gid < size) out[gid] = a[gid] >= val;"
 "}";
 const cl::Program scalarge_program(scalarge_source, true);
-auto scalarge = cl::make_kernel<cl::Buffer, float, cl::Buffer, unsigned int>(
+auto scalarge = cl::compatibility::make_kernel<cl::Buffer, float, cl::Buffer, unsigned int>(
   scalarge_program, "scalarge"
 );
 void ScalarGe(OpenCLArray* a, float val, OpenCLArray* out) {
@@ -745,7 +747,7 @@ std::string ewiselog_source =
 "  if (gid < size) out[gid] = log(a[gid]);"
 "}";
 const cl::Program ewiselog_program(ewiselog_source, true);
-auto ewiselog = cl::make_kernel<cl::Buffer, cl::Buffer, unsigned int>(
+auto ewiselog = cl::compatibility::make_kernel<cl::Buffer, cl::Buffer, unsigned int>(
   ewiselog_program, "ewiselog"
 );
 void EwiseLog(OpenCLArray* a, OpenCLArray* out) {
@@ -761,7 +763,7 @@ std::string ewiseexp_source =
 "  if (gid < size) out[gid] = exp(a[gid]);"
 "}";
 const cl::Program ewiseexp_program(ewiseexp_source, true);
-auto ewiseexp = cl::make_kernel<cl::Buffer, cl::Buffer, unsigned int>(
+auto ewiseexp = cl::compatibility::make_kernel<cl::Buffer, cl::Buffer, unsigned int>(
   ewiseexp_program, "ewiseexp"
 );
 void EwiseExp(OpenCLArray* a, OpenCLArray* out) {
@@ -777,7 +779,7 @@ std::string ewisetanh_source =
 "  if (gid < size) out[gid] = tanh(a[gid]);"
 "}";
 const cl::Program ewisetanh_program(ewisetanh_source, true);
-auto ewisetanh = cl::make_kernel<cl::Buffer, cl::Buffer, unsigned int>(
+auto ewisetanh = cl::compatibility::make_kernel<cl::Buffer, cl::Buffer, unsigned int>(
   ewisetanh_program, "ewisetanh"
 );
 void EwiseTanh(OpenCLArray* a, OpenCLArray* out) {
@@ -809,7 +811,7 @@ std::string matmul_source =
 "  }"
 "}";
 const cl::Program matmul_program(matmul_source, true);
-auto matmul = cl::make_kernel<cl::Buffer, cl::Buffer, cl::Buffer, unsigned int,
+auto matmul = cl::compatibility::make_kernel<cl::Buffer, cl::Buffer, cl::Buffer, unsigned int,
                               unsigned int, unsigned int, unsigned int>(
   matmul_program, "matmul"
 );
@@ -836,7 +838,7 @@ std::string reducemax_source =
 "  }"
 "}";
 const cl::Program reducemax_program(reducemax_source, true);
-auto reducemax = cl::make_kernel<cl::Buffer, cl::Buffer, unsigned int, unsigned int>(
+auto reducemax = cl::compatibility::make_kernel<cl::Buffer, cl::Buffer, unsigned int, unsigned int>(
   reducemax_program, "reducemax"
 );
 void ReduceMax(OpenCLArray* a, OpenCLArray* out, unsigned int reduce_size) {
@@ -859,7 +861,7 @@ std::string reducesum_source =
 "  }"
 "}";
 const cl::Program reducesum_program(reducesum_source, true);
-auto reducesum = cl::make_kernel<cl::Buffer, cl::Buffer, unsigned int, unsigned int>(
+auto reducesum = cl::compatibility::make_kernel<cl::Buffer, cl::Buffer, unsigned int, unsigned int>(
   reducesum_program, "reducesum"
 );
 void ReduceSum(OpenCLArray* a, OpenCLArray* out, unsigned int reduce_size) {
@@ -897,7 +899,7 @@ std::string conv_source =
 "  }"
 "}";
 const cl::Program conv_program(conv_source, true);
-auto conv = cl::make_kernel<cl::Buffer, cl::Buffer, cl::Buffer, unsigned int,
+auto conv = cl::compatibility::make_kernel<cl::Buffer, cl::Buffer, cl::Buffer, unsigned int,
 unsigned int, unsigned int, unsigned int>(
   conv_program, "conv"
 );
@@ -955,7 +957,7 @@ std::string conv4_source =
 "}";
 
 const cl::Program conv4_program(conv4_source, true);
-auto conv4 = cl::make_kernel<cl::Buffer, cl::Buffer, cl::Buffer, unsigned int,
+auto conv4 = cl::compatibility::make_kernel<cl::Buffer, cl::Buffer, cl::Buffer, unsigned int,
 unsigned int, unsigned int, unsigned int, unsigned int, unsigned int,
 unsigned int, unsigned int>(
   conv4_program, "conv4"

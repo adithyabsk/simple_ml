@@ -91,5 +91,6 @@ cython_debug/
 # Custom
 .DS_Store
 .python-version
-*.ipynb
-data/
+#*.ipynb
+data/*
+.idea
