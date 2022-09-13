@@ -5,8 +5,9 @@ import operator
 from functools import reduce
 from typing import List
 
-import needle.init as init
 import numpy as np
+
+import needle.init as init
 from needle import ops
 from needle.autograd import Tensor
 
@@ -452,7 +453,7 @@ class Conv(Module):
         )
         init.kaiming_uniform(self.weight)
         if bias:
-            bias_interval = 1.0 / ((in_channels * kernel_size ** 2) ** 0.5)
+            bias_interval = 1.0 / ((in_channels * kernel_size**2) ** 0.5)
             self.bias = Parameter(
                 ops.zeros(shape=(out_channels,), dtype=dtype, device=device)
             )

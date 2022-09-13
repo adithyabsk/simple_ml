@@ -3,9 +3,10 @@ import sys
 sys.path.append("./python")
 import itertools
 
-import needle as ndl
 import numpy as np
 import pytest
+
+import needle as ndl
 from needle import backend_ndarray as nd
 
 np.random.seed(2)

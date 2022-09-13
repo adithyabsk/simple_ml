@@ -3,10 +3,11 @@ import sys
 sys.path.append("./python")
 import itertools
 
-import needle as ndl
 import numpy as np
 import pytest
 import torch
+
+import needle as ndl
 from needle import backend_ndarray as nd
 
 np.random.seed(1)
@@ -106,7 +107,7 @@ def test_power(shape, device):
     _A = np.random.randn(*shape).astype(np.float32)
     _B = np.random.randint(1)
     A = ndl.Tensor(nd.array(_A), device=device)
-    np.testing.assert_allclose(_A ** _B, (A ** _B).numpy(), atol=1e-5, rtol=1e-5)
+    np.testing.assert_allclose(_A**_B, (A**_B).numpy(), atol=1e-5, rtol=1e-5)
 
 
 @pytest.mark.parametrize("shape", GENERAL_SHAPES)

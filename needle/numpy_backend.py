@@ -4,6 +4,7 @@ This backend uses numpy for cached data and redirects
 all computations to corresponding numpy functions.
 """
 import numpy as np
+
 from needle.device import Device, DLDeviceType
 from needle.ops import register_op_attr
 

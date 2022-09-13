@@ -2,8 +2,9 @@
 
 This backend uses cuda backend_ndarray for cached data and computation.
 """
-import needle.device
 import numpy as np
+
+import needle.device
 from needle import backend_ndarray as nd
 from needle.device import Device, DLDeviceType
 from needle.ops import register_op_attr

@@ -1,10 +1,11 @@
 import sys
 
 sys.path.append("./python")
-import needle as ndl
-import needle.nn as nn
 import numpy as np
 import pytest
+
+import needle as ndl
+import needle.nn as nn
 
 sys.path.append("./apps")
 """Deterministically generate a matrix"""
@@ -69,7 +70,7 @@ def batchnorm_running_grad(*shape, iters=10):
         x = get_tensor(*shape, entropy=i)
         y = bn(x)
     bn.eval()
-    (y ** 2).sum().backward()
+    (y**2).sum().backward()
     return x.grad.numpy()
 
 
@@ -302,12 +303,12 @@ def check_training_mode():
 
 def power_scalar_forward(shape, power=2):
     x = get_tensor(*shape)
-    return (x ** power).numpy()
+    return (x**power).numpy()
 
 
 def power_scalar_backward(shape, power=2):
     x = get_tensor(*shape)
-    y = (x ** power).sum()
+    y = (x**power).sum()
     y.backward()
     return x.grad.numpy()
 
@@ -320,7 +321,7 @@ def logsoftmax_forward(shape, mult=1.0):
 def logsoftmax_backward(shape, mult=1.0):
     x = get_tensor(*shape)
     y = ndl.ops.logsoftmax(x * mult)
-    z = (y ** 2).sum()
+    z = (y**2).sum()
     z.backward()
     return x.grad.numpy()
 

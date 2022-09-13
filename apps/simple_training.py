@@ -4,11 +4,12 @@ sys.path.append("../python")
 
 import time
 
-import needle as ndl
-import needle.nn as nn
 import numpy as np
 from models import *  # noqa: F403
 from tqdm import tqdm
+
+import needle as ndl
+import needle.nn as nn
 
 # TODO: Make these concrete imports instead of a star import
 

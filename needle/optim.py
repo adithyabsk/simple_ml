@@ -1,6 +1,7 @@
 """Optimization module"""
-import needle as ndl
 import numpy as np
+
+import needle as ndl
 
 
 class Optimizer:
@@ -93,21 +94,21 @@ class Adam(Optimizer):
 
             if i not in self.v:
                 self.v[i] = ndl.Tensor.make_const(
-                    (1 - self.beta2) * grad ** 2, device=param.device
+                    (1 - self.beta2) * grad**2, device=param.device
                 )
             else:
                 self.v[i].data = (
-                    self.beta2 * self.v[i].data + (1 - self.beta2) * grad ** 2
+                    self.beta2 * self.v[i].data + (1 - self.beta2) * grad**2
                 )
 
             m_hat = self.m[i].data
             v_hat = self.v[i].data
 
             if self.bias_correction:
-                m_hat = m_hat / (1 - self.beta1 ** self.t)
-                v_hat = v_hat / (1 - self.beta2 ** self.t)
+                m_hat = m_hat / (1 - self.beta1**self.t)
+                v_hat = v_hat / (1 - self.beta2**self.t)
 
-            param.data = param.data + -self.lr * m_hat / (v_hat ** 0.5 + self.eps)
+            param.data = param.data + -self.lr * m_hat / (v_hat**0.5 + self.eps)
 
             del m_hat, v_hat
         ### END YOUR SOLUTION

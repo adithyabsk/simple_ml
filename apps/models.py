@@ -6,9 +6,10 @@ from functools import reduce
 
 sys.path.append("./python")
 
+import numpy as np
+
 import needle as ndl
 import needle.nn as nn
-import numpy as np
 
 np.random.seed(0)
 

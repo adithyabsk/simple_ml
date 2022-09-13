@@ -1,6 +1,7 @@
-import needle as ndl
 import numpy as np
 import pytest
+
+import needle as ndl
 from needle import backend_ndarray as nd
 
 _DEVICES = [
@@ -475,10 +476,10 @@ def test_scalar_power(device):
     A = np.random.randn(5, 5)
     B = nd.array(A, device=device)
     np.testing.assert_allclose(
-        np.power(A, 5.0), (B ** 5.0).numpy(), atol=1e-5, rtol=1e-5
+        np.power(A, 5.0), (B**5.0).numpy(), atol=1e-5, rtol=1e-5
     )
     np.testing.assert_allclose(
-        np.power(A, 0.5), (B ** 0.5).numpy(), atol=1e-5, rtol=1e-5
+        np.power(A, 0.5), (B**0.5).numpy(), atol=1e-5, rtol=1e-5
     )
 
 

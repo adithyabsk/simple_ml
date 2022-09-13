@@ -4,13 +4,14 @@ sys.path.append("./python")
 sys.path.append("./apps")
 import itertools
 
-import needle as ndl
-import needle.nn as nn
 import numpy as np
 import pytest
 import torch
 from models import LanguageModel
 from simple_training import *
+
+import needle as ndl
+import needle.nn as nn
 
 np.random.seed(3)
 
