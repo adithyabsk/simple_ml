@@ -6,8 +6,8 @@ import itertools
 import numpy as np
 import pytest
 
-import needle as ndl
-from needle import backend_ndarray as nd
+import simple_ml as ndl
+from simple_ml import backend_ndarray as nd
 
 _DEVICES = [
     ndl.cpu(),

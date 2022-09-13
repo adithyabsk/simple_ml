@@ -2,7 +2,7 @@
 from enum import Enum
 from typing import Dict, List, Optional
 
-import needle
+import simple_ml
 
 from .device import CachedData, Device, default_device
 
@@ -137,13 +137,13 @@ class Tuple(Value):
         return len(cdata)
 
     def __getitem__(self, index: int):
-        return needle.ops.tuple_get_item(self, index)
+        return simple_ml.ops.tuple_get_item(self, index)
 
     def tuple(self):
         return tuple([x for x in self])
 
     def __repr__(self):
-        return "needle.Tuple" + str(self.tuple())
+        return "simple_ml.Tuple" + str(self.tuple())
 
     def __str__(self):
         return self.__repr__()
@@ -151,7 +151,7 @@ class Tuple(Value):
     def __add__(self, other):
         assert isinstance(other, Tuple)
         assert len(self) == len(other)
-        return needle.ops.make_tuple(*[self[i] + other[i] for i in range(len(self))])
+        return simple_ml.ops.make_tuple(*[self[i] + other[i] for i in range(len(self))])
 
     def detach(self):
         """Create a new tensor that shares the data but detaches from the graph."""
@@ -238,17 +238,17 @@ class Tensor(Value):
         return self.realize_cached_data().size
 
     def backward(self, out_grad=None):
-        out_grad = out_grad if out_grad else needle.ops.ones_like(self)
+        out_grad = out_grad if out_grad else simple_ml.ops.ones_like(self)
         compute_gradient_of_variables(self, out_grad)
 
     def __getitem__(self, idxs):
-        return needle.ops.get_item(self, idxs)
+        return simple_ml.ops.get_item(self, idxs)
 
     def __setitem__(self, idxs, other):
-        return needle.ops.set_item(self, idxs, other)
+        return simple_ml.ops.set_item(self, idxs, other)
 
     def __repr__(self):
-        return "needle.Tensor(" + str(self.realize_cached_data()) + ")"
+        return "simple_ml.Tensor(" + str(self.realize_cached_data()) + ")"
 
     def __str__(self):
         return self.realize_cached_data().__str__()
@@ -258,65 +258,65 @@ class Tensor(Value):
 
     def __add__(self, other):
         if isinstance(other, Tensor):
-            return needle.ops.add(self, other)
+            return simple_ml.ops.add(self, other)
         else:
             # Add by a constant stores the constant in the new node's const_attr field.
             # 'other' argument is a constant
-            return needle.ops.add_scalar(self, other)
+            return simple_ml.ops.add_scalar(self, other)
 
     def __mul__(self, other):
         if isinstance(other, Tensor):
-            return needle.ops.multiply(self, other)
+            return simple_ml.ops.multiply(self, other)
         else:
-            return needle.ops.multiply_scalar(self, other)
+            return simple_ml.ops.multiply_scalar(self, other)
 
     def __pow__(self, other):
         if isinstance(other, Tensor):
             raise NotImplementedError()
         else:
-            return needle.ops.power_scalar(self, other)
+            return simple_ml.ops.power_scalar(self, other)
 
     def __sub__(self, other):
         if isinstance(other, Tensor):
-            return needle.ops.add(self, needle.ops.negate(other))
+            return simple_ml.ops.add(self, simple_ml.ops.negate(other))
         else:
-            return needle.ops.add_scalar(self, -other)
+            return simple_ml.ops.add_scalar(self, -other)
 
     def __truediv__(self, other):
         if isinstance(other, Tensor):
-            return needle.ops.divide(self, other)
+            return simple_ml.ops.divide(self, other)
         else:
-            return needle.ops.divide_scalar(self, other)
+            return simple_ml.ops.divide_scalar(self, other)
 
     def __matmul__(self, other):
-        return needle.ops.matmul(self, other)
+        return simple_ml.ops.matmul(self, other)
 
     def matmul(self, other):
-        return needle.ops.matmul(self, other)
+        return simple_ml.ops.matmul(self, other)
 
     def sum(self, axes=None):
-        return needle.ops.summation(self, axes)
+        return simple_ml.ops.summation(self, axes)
 
     def broadcast_to(self, shape):
-        return needle.ops.broadcast_to(self, shape)
+        return simple_ml.ops.broadcast_to(self, shape)
 
     def reshape(self, shape):
-        return needle.ops.reshape(self, shape)
+        return simple_ml.ops.reshape(self, shape)
 
     def __neg__(self):
-        return needle.ops.negate(self)
+        return simple_ml.ops.negate(self)
 
     def transpose(self, axes=None):
-        return needle.ops.transpose(self, axes)
+        return simple_ml.ops.transpose(self, axes)
 
     def flip(self, axes=None):
-        return needle.ops.flip(self, axes)
+        return simple_ml.ops.flip(self, axes)
 
     def pad(self, axes=None):
-        return needle.ops.pad(self, axes)
+        return simple_ml.ops.pad(self, axes)
 
     def permute(self, new_axes=None):
-        return needle.ops.permute(self, new_axes)
+        return simple_ml.ops.permute(self, new_axes)
 
     __radd__ = __add__
     __rmul__ = __mul__
@@ -344,7 +344,7 @@ def compute_gradient_of_variables(output_tensor, out_grad):
         if node in node_to_output_grads_list:
             out_grad = sum_node_list(node_to_output_grads_list[node])
         else:
-            out_grad = needle.zeros_like(node)
+            out_grad = simple_ml.zeros_like(node)
 
         if not node.requires_grad:
             continue

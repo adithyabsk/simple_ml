@@ -5,8 +5,8 @@ all computations to corresponding numpy functions.
 """
 import numpy as np
 
-from needle.device import Device, DLDeviceType
-from needle.ops import register_op_attr
+from simple_ml.device import Device, DLDeviceType
+from simple_ml.ops import register_op_attr
 
 
 class NumpyDevice(Device):

@@ -10,8 +10,8 @@ import torch
 from models import LanguageModel
 from simple_training import *
 
-import needle as ndl
-import needle.nn as nn
+import simple_ml as ndl
+import simple_ml.nn as nn
 
 np.random.seed(3)
 

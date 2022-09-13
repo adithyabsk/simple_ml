@@ -7,9 +7,9 @@ from typing import List
 
 import numpy as np
 
-import needle.init as init
-from needle import ops
-from needle.autograd import Tensor
+import simple_ml.init as init
+from simple_ml import ops
+from simple_ml.autograd import Tensor
 
 
 class Parameter(Tensor):

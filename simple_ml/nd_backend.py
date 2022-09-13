@@ -4,10 +4,10 @@ This backend uses cuda backend_ndarray for cached data and computation.
 """
 import numpy as np
 
-import needle.device
-from needle import backend_ndarray as nd
-from needle.device import Device, DLDeviceType
-from needle.ops import register_op_attr
+import simple_ml.device
+from simple_ml import backend_ndarray as nd
+from simple_ml.device import Device, DLDeviceType
+from simple_ml.ops import register_op_attr
 
 
 class NDDevice(Device):
@@ -116,7 +116,7 @@ def cpu() -> CPUDevice:
 
 
 # set default device to be cpu device.
-needle.device._DEFAULT_DEVICE = CPUDevice
+simple_ml.device._DEFAULT_DEVICE = CPUDevice
 
 
 def opencl(device_id: int = 0) -> CPUDevice:

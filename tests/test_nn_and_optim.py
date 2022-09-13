@@ -4,8 +4,8 @@ sys.path.append("./python")
 import numpy as np
 import pytest
 
-import needle as ndl
-import needle.nn as nn
+import simple_ml as ndl
+import simple_ml.nn as nn
 
 sys.path.append("./apps")
 """Deterministically generate a matrix"""

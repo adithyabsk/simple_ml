@@ -7,8 +7,8 @@ import numpy as np
 import pytest
 import torch
 
-import needle as ndl
-from needle import backend_ndarray as nd
+import simple_ml as ndl
+from simple_ml import backend_ndarray as nd
 
 np.random.seed(1)
 

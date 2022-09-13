@@ -1,6 +1,6 @@
 import math
 
-import needle as ndl
+import simple_ml as ndl
 
 
 def uniform(x, low=0.0, high=1.0):

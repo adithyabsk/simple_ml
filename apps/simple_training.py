@@ -8,8 +8,8 @@ import numpy as np
 from models import *  # noqa: F403
 from tqdm import tqdm
 
-import needle as ndl
-import needle.nn as nn
+import simple_ml as ndl
+import simple_ml.nn as nn
 
 # TODO: Make these concrete imports instead of a star import
 
