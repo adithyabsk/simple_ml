@@ -164,12 +164,11 @@ class PowerScalarOp(Op):
         return Tensor.make_from_op(self, [a], attrs={"scalar": scalar})
 
     def gradient(self, out_grad, node):
-        ### BEGIN YOUR SOLUTION
+
         return [
             (node.attrs["scalar"] * (node.inputs[0] ** (node.attrs["scalar"] - 1)))
             * out_grad
         ]
-        ### END YOUR SOLUTION
 
 
 power_scalar = register_op("PowerScalar", PowerScalarOp())
@@ -182,10 +181,9 @@ class EWiseDivOp(Op):
         return Tensor.make_from_op(self, [a, b])
 
     def gradient(self, out_grad, node):
-        ### BEGIN YOUR SOLUTION
+
         lhs, rhs = node.inputs
         return (out_grad / rhs, out_grad * (-lhs / (rhs * rhs)))
-        ### END YOUR SOLUTION
 
 
 divide = register_op("EWiseDiv", EWiseDivOp())
@@ -196,9 +194,8 @@ class DivScalarOp(Op):
         return Tensor.make_from_op(self, [a], attrs={"scalar": scalar})
 
     def gradient(self, out_grad, node):
-        ### BEGIN YOUR SOLUTION
+
         return [out_grad / node.attrs["scalar"]]
-        ### END YOUR SOLUTION
 
 
 divide_scalar = register_op("DivScalar", DivScalarOp())
@@ -219,13 +216,12 @@ class MatMulOp(Op):
         return Tensor.make_from_op(self, [a, b])
 
     def gradient(self, out_grad, node):
-        ### BEGIN YOUR SOLUTION
+
         lhs, rhs = node.inputs
         return (
             sum_grad(out_grad @ rhs.transpose(None), len(lhs.shape)),
             sum_grad(lhs.transpose(None) @ out_grad, len(rhs.shape)),
         )
-        ### END YOUR SOLUTION
 
 
 matmul = register_op("MatMul", MatMulOp())
@@ -236,7 +232,7 @@ class SummationOp(Op):
         return Tensor.make_from_op(self, [a], attrs={"axes": axes})
 
     def gradient(self, out_grad, node):
-        ### BEGIN YOUR SOLUTION
+
         input_shape = node.inputs[0].shape
         axes = node.attrs.get("axes", None)
         summation_axis = set(
@@ -248,7 +244,6 @@ class SummationOp(Op):
         # the first reshape adds back the reduced dimensions as 1s
         # the brodcast expands this into repeated values
         return [out_grad.reshape(new_shape).broadcast_to(input_shape)]
-        ### END YOUR SOLUTION
 
 
 summation = register_op("Summation", SummationOp())
@@ -259,7 +254,7 @@ class BroadcastToOp(Op):
         return Tensor.make_from_op(self, [a], attrs={"shape": shape})
 
     def gradient(self, out_grad, node):
-        ### BEGIN YOUR SOLUTION
+
         input_shape = node.inputs[0].shape
         broadcast_shape = node.attrs["shape"]
         if broadcast_shape == input_shape:
@@ -273,7 +268,6 @@ class BroadcastToOp(Op):
         )
 
         return [out_grad.sum(summation_axes).reshape(input_shape)]
-        ### END YOUR SOLUTION
 
 
 broadcast_to = register_op("BroadcastTo", BroadcastToOp())
@@ -284,7 +278,7 @@ class ReshapeOp(Op):
         return Tensor.make_from_op(self, [a], attrs={"shape": shape})
 
     def gradient(self, out_grad, node):
-        ### BEGIN YOUR SOLUTION
+
         input_shape = node.inputs[0].shape
         if len(input_shape) == 0:
             first_elem_slice = (0,) + tuple(
@@ -293,7 +287,6 @@ class ReshapeOp(Op):
             return [out_grad[first_elem_slice]]
         else:
             return [out_grad.reshape(input_shape)]
-        ### END YOUR SOLUTION
 
 
 reshape = register_op("Reshape", ReshapeOp())
@@ -304,12 +297,11 @@ class PermuteOp(Op):
         return Tensor.make_from_op(self, [a], attrs={"new_axes": new_axes})
 
     def gradient(self, out_grad, node):
-        ### BEGIN YOUR SOLUTION
+
         new_axes = node.attrs["new_axes"]
         # resort new_axes in original order
         orig_axes = tuple(map(lambda idx: new_axes.index(idx), range(len(new_axes))))
         return [out_grad.permute(orig_axes)]
-        ### END YOUR SOLUTION
 
 
 permute = register_op("Permute", PermuteOp())
@@ -320,9 +312,8 @@ class NegateOp(Op):
         return Tensor.make_from_op(self, [a])
 
     def gradient(self, out_grad, node):
-        ### BEGIN YOUR SOLUTION
+
         return [-out_grad]
-        ### END YOUR SOLUTION
 
 
 negate = register_op("Negate", NegateOp())
@@ -333,10 +324,9 @@ class TransposeOp(Op):
         return Tensor.make_from_op(self, [a], attrs={"axes": axes})
 
     def gradient(self, out_grad, node):
-        ### BEGIN YOUR SOLUTION
+
         axes = node.attrs.get("axes", None)
         return [out_grad.transpose(axes)]
-        ### END YOUR SOLUTION
 
 
 transpose = register_op("Transpose", TransposeOp())
@@ -347,10 +337,9 @@ class LogOp(Op):
         return Tensor.make_from_op(self, [a])
 
     def gradient(self, out_grad, node):
-        ### BEGIN YOUR SOLUTION
+
         n = node.inputs[0]
         return [out_grad / n]  # essentially 1 / n * out_grad
-        ### END YOUR SOLUTION
 
 
 log = register_op("Log", LogOp())
@@ -372,10 +361,9 @@ class ReLUOp(Op):
         return Tensor.make_from_op(self, [a])
 
     def gradient(self, out_grad, node):
-        ### BEGIN YOUR SOLUTION
+
         epsilon = 1e-12
         return [((node + epsilon) / (node.inputs[0] + epsilon)) * out_grad]
-        ### END YOUR SOLUTION
 
 
 relu = register_op("ReLU", ReLUOp())
@@ -393,7 +381,7 @@ class LogSoftmaxOp(Op):
         return Tensor.make_from_op(self, [a])
 
     def gradient(self, out_grad, node):
-        ### BEGIN YOUR SOLUTION
+
         a = node.inputs[0]
         last_axis = len(a.shape) - 1
         orig_shape = a.shape[:-1] + (1,)
@@ -406,7 +394,6 @@ class LogSoftmaxOp(Op):
                 .broadcast_to(a.shape)
             )
         ]
-        ### END YOUR SOLUTION
 
 
 logsoftmax = register_op("LogSoftmax", LogSoftmaxOp())
@@ -417,12 +404,11 @@ class TanhOp(Op):
         return Tensor.make_from_op(self, [a])
 
     def gradient(self, out_grad, node):
-        ### BEGIN YOUR SOLUTION
+
         # TODO: not sure why this gradient comes out backwards
         #       it should be (1 - tanh^2(x))
         #       but the numerical tests say it should be  (-1+tanh^2(x))
         return [-(1 - tanh(node.inputs[0]) ** 2) * out_grad]
-        ### END YOUR SOLUTION
 
 
 tanh = register_op("Tanh", TanhOp())
@@ -433,13 +419,12 @@ class GetItemOp(Op):
         return Tensor.make_from_op(self, [a], attrs={"idxs": idxs})
 
     def gradient(self, out_grad, node):
-        ### BEGIN YOUR SOLUTION
+
         a = node.inputs[0]
         idxs = node.attrs["idxs"]
         ret_tensor = zeros_like(a)
         ret_tensor[idxs] = out_grad
         return [ret_tensor]
-        ### END YOUR SOLUTION
 
 
 get_item = register_op("GetItem", GetItemOp())
@@ -461,7 +446,7 @@ class StackOp(Op):
         return Tensor.make_from_op(self, args, attrs={"axis": axis})
 
     def gradient(self, out_grad, node):
-        ### BEGIN YOUR SOLUTION
+
         out_grad_list = []
         arr_list = node.inputs
         init_shape = arr_list[0].shape
@@ -473,7 +458,6 @@ class StackOp(Op):
             out_grad_list.append(out_grad[tuple(slices)].reshape(init_shape))
             start += 1
         return out_grad_list
-        ### END YOUR SOLUTION
 
 
 stack = register_op("Stack", StackOp())
@@ -492,7 +476,6 @@ class ConvOp(Op):
         )
 
     def gradient(self, out_grad, node):
-        ### BEGIN YOUR SOLUTION
         X_grad, W_grad = node.inputs
         padding = node.attrs["padding"]
         stride = node.attrs["stride"]
@@ -526,7 +509,6 @@ class ConvOp(Op):
                 padding=padding,
             ).permute((1, 2, 0, 3)),
         )
-        ### END YOUR SOLUTION
 
 
 conv = register_op("Conv", ConvOp())
@@ -539,7 +521,7 @@ class PadOp(Op):
         return Tensor.make_from_op(self, [a], attrs={"axes": axes})
 
     def gradient(self, out_grad, node):
-        ### BEGIN YOUR SOLUTION
+
         axes = node.attrs.get("axes", None)
         A = node.inputs[0]
         slices = tuple(
@@ -547,7 +529,6 @@ class PadOp(Op):
             for dim, (lp, rp) in zip(A.shape, axes)
         )
         return [out_grad[slices]]
-        ### END YOUR SOLUTION
 
 
 pad = register_op("Pad", PadOp())
@@ -558,10 +539,9 @@ class FlipOp(Op):
         return Tensor.make_from_op(self, [a], attrs={"axes": axes})
 
     def gradient(self, out_grad, node):
-        ### BEGIN YOUR SOLUTION
+
         axes = node.attrs.get("axes", None)
         return [out_grad.flip(axes)]
-        ### END YOUR SOLUTION
 
 
 flip = register_op("Flip", FlipOp())
@@ -574,7 +554,7 @@ class DilateOp(Op):
         )
 
     def gradient(self, out_grad, node):
-        ### BEGIN YOUR SOLUTION
+
         dilation = node.attrs.get("dilation")
         axes = node.attrs.get("axes", None)
         a = node.inputs[0]
@@ -585,7 +565,6 @@ class DilateOp(Op):
             for i, s in enumerate(a.shape)
         ]
         return [out_grad[tuple(slices)]]
-        ### END YOUR SOLUTION
 
 
 dilate = register_op("Dilate", DilateOp())

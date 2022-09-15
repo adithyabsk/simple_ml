@@ -153,30 +153,26 @@ def mul_scalar(inputs, attrs):
 
 @register_nd_compute("EWiseDiv")
 def divide(inputs, attrs):
-    ### BEGIN YOUR SOLUTION
+
     return inputs[0] / inputs[1]
-    ### END YOUR SOLUTION
 
 
 @register_nd_compute("DivScalar")
 def divide_scalar(inputs, attrs):
-    ### BEGIN YOUR SOLUTION
+
     return inputs[0] / attrs["scalar"]
-    ### END YOUR SOLUTION
 
 
 @register_nd_compute("PowerScalar")
 def power_scalar(inputs, attrs):
-    ### BEGIN YOUR SOLUTION
+
     return inputs[0] ** attrs["scalar"]
-    ### END YOUR SOLUTION
 
 
 @register_nd_compute("MatMul")
 def matmul(inputs, attrs):
-    ### BEGIN YOUR SOLUTION
+
     return inputs[0] @ inputs[1]
-    ### END YOUR SOLUTION
 
 
 @register_nd_compute("Summation")
@@ -190,7 +186,7 @@ def summation(inputs, attrs):
 
     Returns an array with the same shape, except with the specified axes removed.
     """
-    ### BEGIN YOUR SOLUTION
+
     if attrs["axes"] is None:
         new_shape = tuple()
     elif isinstance(attrs["axes"], int):
@@ -209,35 +205,30 @@ def summation(inputs, attrs):
         for a in attrs["axes"][1:]:
             ret_arr = ret_arr.sum(a)
         return ret_arr.reshape(new_shape)
-    ### END YOUR SOLUTION
 
 
 @register_nd_compute("BroadcastTo")
 def broadcast_to(inputs, attrs):
-    ### BEGIN YOUR SOLUTION
+
     return inputs[0].broadcast_to(new_shape=attrs["shape"])
-    ### END YOUR SOLUTION
 
 
 @register_nd_compute("Reshape")
 def reshape(inputs, attrs):
-    ### BEGIN YOUR SOLUTION
+
     return inputs[0].reshape(new_shape=attrs["shape"])
-    ### END YOUR SOLUTION
 
 
 @register_nd_compute("Permute")
 def permute(inputs, attrs):
-    ### BEGIN YOUR SOLUTION
+
     return inputs[0].permute(new_axes=attrs["new_axes"])
-    ### END YOUR SOLUTION
 
 
 @register_nd_compute("Negate")
 def negate(inputs, attrs):
-    ### BEGIN YOUR SOLUTION
+
     return inputs[0] * -1
-    ### END YOUR SOLUTION
 
 
 @register_nd_compute("Transpose")
@@ -249,7 +240,7 @@ def transpose(inputs, attrs):
     If axes is a tuple of ints, permute those two axes.
     If axes is None, permutes the last two axes.
     """
-    ### BEGIN YOUR SOLUTION
+
     shape_size = len(inputs[0].shape)
     axes = attrs.get("axes", None)
     if axes is None:
@@ -260,28 +251,24 @@ def transpose(inputs, attrs):
     new_axes[axes[1]], new_axes[axes[0]] = new_axes[axes[0]], new_axes[axes[1]]
     new_axes = tuple(new_axes)
     return inputs[0].permute(new_axes=new_axes)
-    ### END YOUR SOLUTION
 
 
 @register_nd_compute("Log")
 def log(inputs, attrs):
-    ### BEGIN YOUR SOLUTION
+
     return inputs[0].log()
-    ### END YOUR SOLUTION
 
 
 @register_nd_compute("Exp")
 def exp(inputs, attrs):
-    ### BEGIN YOUR SOLUTION
+
     return inputs[0].exp()
-    ### END YOUR SOLUTION
 
 
 @register_nd_compute("ReLU")
 def relu(inputs, attrs):
-    ### BEGIN YOUR SOLUTION
+
     return inputs[0].maximum(0)
-    ### END YOUR SOLUTION
 
 
 @register_nd_compute("LogSoftmax")
@@ -289,7 +276,7 @@ def logsoftmax(inputs, attrs):
     """
     Computes log softmax along the last dimension of the array.
     """
-    ### BEGIN YOUR SOLUTION
+
     shape_size = len(inputs[0].shape)
     last_axis = shape_size - 1
     # in the next two lines we need to reshape followed by a broadcast to get
@@ -307,14 +294,12 @@ def logsoftmax(inputs, attrs):
         .broadcast_to(new_shape=inputs[0].shape)
         .log()
     )
-    ### END YOUR SOLUTION
 
 
 @register_nd_compute("Tanh")
 def tanh(inputs, attrs):
-    ### BEGIN YOUR SOLUTION
+
     return inputs[0].tanh()
-    ### END YOUR SOLUTION
 
 
 @register_nd_compute("GetItem")
@@ -326,9 +311,8 @@ def get_item(inputs, attrs):
     Returns array indexed by idxs i.e. if array A has shape (5, 3, 2),
     then the shape of the A[0, :, :] would be (3, 2).
     """
-    ### BEGIN YOUR SOLUTION
+
     return inputs[0][attrs["idxs"]]
-    ### END YOUR SOLUTION
 
 
 @register_nd_compute("SetItem")
@@ -339,10 +323,9 @@ def set_item(inputs, attrs):
 
     Sets array A at idxs with array B and returns the array.
     """
-    ### BEGIN YOUR SOLUTION
+
     inputs[0][attrs["idxs"]] = inputs[1]
     return inputs[0]
-    ### END YOUR SOLUTION
 
 
 @register_nd_compute("Stack")
@@ -355,7 +338,7 @@ def stack(As, attrs):
 
     All arrays need to be of the same size.
     """
-    ### BEGIN YOUR SOLUTION
+
     axis = attrs["axis"]
     orig_shape = As[0].shape
     init_shape = orig_shape[:axis] + (1,) + orig_shape[axis:]
@@ -385,7 +368,6 @@ def stack(As, attrs):
         start += 1
 
     return out_arr
-    ### END YOUR SOLUTION
 
 
 @register_nd_compute("Flip")
@@ -396,10 +378,9 @@ def flip(inputs, attrs):
     Parameters:
     axes - Axes to flip.
     """
-    ### BEGIN YOUR SOLUTION
+
     axes = attrs["axes"]
     return inputs[0].flip(axes)
-    ### END YOUR SOLUTION
 
 
 @register_nd_compute("Pad")
@@ -410,10 +391,9 @@ def pad(inputs, attrs):
     Parameters:
     axes - Axes to flip.
     """
-    ### BEGIN YOUR SOLUTION
+
     axes = attrs["axes"]
     return inputs[0].pad(axes)
-    ### END YOUR SOLUTION
 
 
 @register_nd_compute("Dilate")
@@ -426,7 +406,7 @@ def dilate(inputs, attrs):
     dilation - Dilation amount (number of 0s to insert)
     axes - Axes to dilate by this amount
     """
-    ### BEGIN YOUR SOLUTION
+
     dilation = attrs["dilation"]
     axes = attrs["axes"]
     a = inputs[0]
@@ -441,7 +421,6 @@ def dilate(inputs, attrs):
     ]
     out[tuple(slices)] = a
     return out
-    ### END YOUR SOLUTION
 
 
 @register_nd_compute("Conv")
@@ -455,7 +434,7 @@ def conv(inputs, attrs):
     padding - (int) Pad the HW axes of the input by this amount
     stride - (int) Stride of the convolution
     """
-    ### BEGIN YOUR SOLUTION
+
     padding = attrs["padding"]
     stride = attrs["stride"]
     tensor = inputs[0]
@@ -480,7 +459,6 @@ def conv(inputs, attrs):
     ).reshape((N * ((H - K) // stride + 1) * ((W - K) // stride + 1), inner_dim))
     out = A @ weight.reshape((K * K * C_in, C_out))
     return out.reshape((N, (H - K) // stride + 1, (W - K) // stride + 1, C_out))
-    ### END YOUR SOLUTION
 
 
 @register_nd_compute("Conv4")
@@ -505,4 +483,3 @@ def conv4(inputs, attrs):
     if not hasattr(tensor, "conv4"):
         raise ValueError("tensor does not have c++ conv implementation")
     return Z.conv4(weight, stride)
-    ### END YOUR SOLUTION

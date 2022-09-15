@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-import simple_ml as ndl
+import simple_ml as sm
 from simple_ml import backend_ndarray as nd
 
 _DEVICES = [

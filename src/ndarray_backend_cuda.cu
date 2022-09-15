@@ -6,7 +6,7 @@
 #include <iostream>
 #include <sstream>
 
-namespace needle {
+namespace simple_ml {
 namespace cuda {
 
 #define BASE_THREAD_NUM 256
@@ -709,11 +709,11 @@ uint32_t stride) {
 
 
 }  // namespace cuda
-}  // namespace needle
+}  // namespace simple_ml
 
 PYBIND11_MODULE(ndarray_backend_cuda, m) {
   namespace py = pybind11;
-  using namespace needle;
+  using namespace simple_ml;
   using namespace cuda;
 
   m.attr("__device_name__") = "cuda";

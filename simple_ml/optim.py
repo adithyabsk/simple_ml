@@ -1,7 +1,7 @@
 """Optimization module"""
 import numpy as np
 
-import simple_ml as ndl
+import simple_ml as sm
 
 
 class Optimizer:
@@ -42,11 +42,11 @@ class SGD(Optimizer):
             p.grad = p.grad.detach() * clip_coef_clamped
 
     def step(self):
-        ### BEGIN YOUR SOLUTION
+
         for i, param in enumerate(self.params):
             grad = param.grad.data + self.weight_decay * param.data
             if i not in self.delta:
-                self.delta[i] = ndl.Tensor.make_const(
+                self.delta[i] = sm.Tensor.make_const(
                     -self.lr * grad, device=param.device
                 )
             else:
@@ -54,7 +54,6 @@ class SGD(Optimizer):
                     self.momentum * self.delta[i].data + -self.lr * grad
                 )
             param.data = param.data + self.delta[i].data
-        ### END YOUR SOLUTION
 
 
 class Adam(Optimizer):
@@ -81,19 +80,19 @@ class Adam(Optimizer):
         self.v = {}
 
     def step(self):
-        ### BEGIN YOUR SOLUTION
+
         self.t += 1
         for i, param in enumerate(self.params):
             grad = param.grad.data + self.weight_decay * param.data
             if i not in self.m:
-                self.m[i] = ndl.Tensor.make_const(
+                self.m[i] = sm.Tensor.make_const(
                     (1 - self.beta1) * grad, device=param.device
                 )
             else:
                 self.m[i].data = self.beta1 * self.m[i].data + (1 - self.beta1) * grad
 
             if i not in self.v:
-                self.v[i] = ndl.Tensor.make_const(
+                self.v[i] = sm.Tensor.make_const(
                     (1 - self.beta2) * grad**2, device=param.device
                 )
             else:
@@ -111,4 +110,3 @@ class Adam(Optimizer):
             param.data = param.data + -self.lr * m_hat / (v_hat**0.5 + self.eps)
 
             del m_hat, v_hat
-        ### END YOUR SOLUTION

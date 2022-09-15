@@ -339,7 +339,6 @@ def compute_gradient_of_variables(output_tensor, out_grad):
     # Traverse graph in reverse topological order given the output_node that we are taking gradient wrt.
     reverse_topo_order = list(reversed(find_topo_sort([output_tensor])))
 
-    ### BEGIN YOUR SOLUTION
     for node in reverse_topo_order:
         if node in node_to_output_grads_list:
             out_grad = sum_node_list(node_to_output_grads_list[node])
@@ -359,7 +358,6 @@ def compute_gradient_of_variables(output_tensor, out_grad):
 
         if node.is_leaf():
             node.grad = out_grad
-    ### END YOUR SOLUTION
 
 
 class TraversalMark(Enum):
@@ -376,7 +374,7 @@ def find_topo_sort(node_list: List[Value]) -> List[Value]:
     after all its predecessors are traversed due to post-order DFS, we get a topological
     sort.
     """
-    ### BEGIN YOUR SOLUTION
+
     topo_order = []
     for node in node_list:
         if not hasattr(node, "mark"):
@@ -390,12 +388,9 @@ def find_topo_sort(node_list: List[Value]) -> List[Value]:
     return topo_order[::-1]
 
 
-### END YOUR SOLUTION
-
-
 def topo_sort_dfs(val: Value, topo_order: List[Value]):
     """Post-order DFS"""
-    ### BEGIN YOUR SOLUTION
+
     if not hasattr(val, "mark"):
         val.mark = TraversalMark.TEMPORARY
     elif val.mark == TraversalMark.VISITED:
@@ -408,7 +403,6 @@ def topo_sort_dfs(val: Value, topo_order: List[Value]):
 
     val.mark = TraversalMark.VISITED
     topo_order.insert(0, val)
-    ### END YOUR SOLUTION
 
 
 ##############################

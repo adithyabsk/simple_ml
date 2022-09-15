@@ -6,13 +6,13 @@ import itertools
 import numpy as np
 import pytest
 
-import simple_ml as ndl
+import simple_ml as sm
 from simple_ml import backend_ndarray as nd
 
 _DEVICES = [
-    ndl.cpu(),
+    sm.cpu(),
     pytest.param(
-        ndl.cuda(), marks=pytest.mark.skipif(not ndl.cuda().enabled(), reason="No GPU")
+        sm.cuda(), marks=pytest.mark.skipif(not sm.cuda().enabled(), reason="No GPU")
     ),
 ]
 
@@ -45,7 +45,7 @@ def backward_check(f, *args, **kwargs):
                 f2 = (f(*args, **kwargs).numpy() * c).sum()
             args[i].realize_cached_data().flat[j] += eps
             numerical_grad[i].flat[j] = (f1 - f2) / (2 * eps)
-    backward_grad = f.gradient(ndl.Tensor(c, device=args[i].device), out)
+    backward_grad = f.gradient(sm.Tensor(c, device=args[i].device), out)
     error = sum(
         np.linalg.norm(backward_grad[i].numpy() - numerical_grad[i])
         for i in range(len(args))
@@ -67,8 +67,8 @@ stack_back_params = [
 @pytest.mark.parametrize("shape, n, axis", stack_back_params)
 def test_stack_backward(shape, n, axis, device):
     np.random.seed(0)
-    get_tensor = lambda shape: ndl.Tensor(np.random.randn(*shape) * 5, device=device)
-    backward_check(ndl.stack, [get_tensor(shape) for _ in range(n)], axis=axis)
+    get_tensor = lambda shape: sm.Tensor(np.random.randn(*shape) * 5, device=device)
+    backward_check(sm.stack, [get_tensor(shape) for _ in range(n)], axis=axis)
 
 
 stack_params = [
@@ -88,11 +88,11 @@ def test_stack_forward(params, device):
     to_stack_npy = []
     for i in range(n):
         _A = np.random.randn(*shape)
-        to_stack_ndl += [ndl.Tensor(_A, device=device)]
+        to_stack_ndl += [sm.Tensor(_A, device=device)]
         to_stack_npy += [_A]
 
     lhs = np.stack(to_stack_npy, axis=axis)
-    rhs = ndl.stack(to_stack_ndl, axis=axis)
+    rhs = sm.stack(to_stack_ndl, axis=axis)
 
 
 pad_params = [
@@ -108,7 +108,7 @@ def test_pad_forward(params, device):
     shape, padding = params["shape"], params["padding"]
     _A = np.random.randn(*shape)
     _B = np.pad(_A, padding)
-    A = ndl.Tensor(_A, device=device)
+    A = sm.Tensor(_A, device=device)
     B = A.pad(padding)
 
     assert np.linalg.norm(B.numpy() - _B) < 1e-4
@@ -128,7 +128,7 @@ def test_pad_backward(params, device):
     np.random.seed(0)
     shape, padding = params["shape"], params["padding"]
     backward_check(
-        ndl.pad, ndl.Tensor(np.random.randn(*shape), device=device), axes=padding
+        sm.pad, sm.Tensor(np.random.randn(*shape), device=device), axes=padding
     )
 
 
@@ -153,8 +153,8 @@ def test_flip_forward(params, device):
     shape, axes = params["shape"], params["axes"]
     _A = np.random.randn(*shape)
     _B = np.flip(_A, axes)
-    A = ndl.Tensor(_A, device=device)
-    B = ndl.flip(A, axes=axes)
+    A = sm.Tensor(_A, device=device)
+    B = sm.flip(A, axes=axes)
 
     assert np.linalg.norm(B.numpy() - _B) < 1e-4
 
@@ -179,31 +179,31 @@ def test_flip_backward(params, device):
     np.random.seed(0)
     shape, axes = params["shape"], params["axes"]
     backward_check(
-        ndl.flip, ndl.Tensor(np.random.randn(*shape), device=device), axes=axes
+        sm.flip, sm.Tensor(np.random.randn(*shape), device=device), axes=axes
     )
 
 
 @pytest.mark.parametrize("device", _DEVICES)
 def test_init_calculate_fans(device):
     _A = np.random.randn(3, 3, 16, 8)
-    A = ndl.Tensor(_A, device=device)
-    assert ndl.init._calculate_fans(A) == (144, 72)
+    A = sm.Tensor(_A, device=device)
+    assert sm.init._calculate_fans(A) == (144, 72)
 
     _A = np.random.randn(3, 3, 16, 8)
-    A = ndl.Tensor(_A, device=device)
-    assert ndl.init._calculate_fans(A) == (144, 72)
+    A = sm.Tensor(_A, device=device)
+    assert sm.init._calculate_fans(A) == (144, 72)
 
     _A = np.random.randn(16, 8)
-    A = ndl.Tensor(_A, device=device)
-    assert ndl.init._calculate_fans(A) == (16, 8)
+    A = sm.Tensor(_A, device=device)
+    assert sm.init._calculate_fans(A) == (16, 8)
 
 
 @pytest.mark.parametrize("device", _DEVICES)
 def test_init_kaiming_uniform(device):
     _A = np.random.randn(3, 3, 16, 8)
-    A = ndl.Tensor(_A, device=device)
+    A = sm.Tensor(_A, device=device)
     np.random.seed(0)
-    ndl.init.kaiming_uniform(A)
+    sm.init.kaiming_uniform(A)
     assert abs(A.sum().numpy() - -2.5719218) < 1e-4
 
 
@@ -223,7 +223,7 @@ def test_resnet9(device):
     assert num_params(model) == 431946
 
     _A = np.random.randn(2, 3, 32, 32)
-    A = ndl.Tensor(_A, device=device)
+    A = sm.Tensor(_A, device=device)
     y = model(A)
 
     assert (
@@ -267,23 +267,23 @@ def test_resnet9(device):
 @pytest.mark.parametrize("device", _DEVICES)
 def test_dilate_forward(device):
     np.random.seed(0)
-    device = ndl.cpu()
+    device = sm.cpu()
 
     _A = np.random.randint(1, 10, size=(2, 5))
-    A = ndl.Tensor(_A, device=device)
+    A = sm.Tensor(_A, device=device)
     assert (
         np.linalg.norm(
-            ndl.dilate(A, dilation=0, axes=(0,)).numpy()
+            sm.dilate(A, dilation=0, axes=(0,)).numpy()
             - np.array([[6.0, 1.0, 4.0, 4.0, 8.0], [4.0, 6.0, 3.0, 5.0, 8.0]])
         )
         < 1e-5
     )
 
     _A = np.random.randint(1, 10, size=(2, 5))
-    A = ndl.Tensor(_A, device=device)
+    A = sm.Tensor(_A, device=device)
     assert (
         np.linalg.norm(
-            ndl.dilate(A, dilation=1, axes=(0,)).numpy()
+            sm.dilate(A, dilation=1, axes=(0,)).numpy()
             - np.array(
                 [
                     [7.0, 9.0, 9.0, 2.0, 7.0],
@@ -297,10 +297,10 @@ def test_dilate_forward(device):
     )
 
     _A = np.random.randint(1, 10, size=(2, 5))
-    A = ndl.Tensor(_A, device=device)
+    A = sm.Tensor(_A, device=device)
     assert (
         np.linalg.norm(
-            ndl.dilate(A, dilation=1, axes=(1,)).numpy()
+            sm.dilate(A, dilation=1, axes=(1,)).numpy()
             - np.array(
                 [
                     [9.0, 0.0, 5.0, 0.0, 4.0, 0.0, 1.0, 0.0, 4.0, 0.0],
@@ -312,10 +312,10 @@ def test_dilate_forward(device):
     )
 
     _A = np.random.randint(1, 10, size=(2, 5))
-    A = ndl.Tensor(_A, device=device)
+    A = sm.Tensor(_A, device=device)
     assert (
         np.linalg.norm(
-            ndl.dilate(A, dilation=1, axes=(0, 1)).numpy()
+            sm.dilate(A, dilation=1, axes=(0, 1)).numpy()
             - np.array(
                 [
                     [2.0, 0.0, 4.0, 0.0, 4.0, 0.0, 4.0, 0.0, 8.0, 0.0],
@@ -329,10 +329,10 @@ def test_dilate_forward(device):
     )
 
     _A = np.random.randint(1, 10, size=(2, 2))
-    A = ndl.Tensor(_A, device=device)
+    A = sm.Tensor(_A, device=device)
     assert (
         np.linalg.norm(
-            ndl.dilate(A, dilation=2, axes=(0, 1)).numpy()
+            sm.dilate(A, dilation=2, axes=(0, 1)).numpy()
             - np.array(
                 [
                     [4.0, 0.0, 0.0, 3.0, 0.0, 0.0],
@@ -348,10 +348,10 @@ def test_dilate_forward(device):
     )
 
     _A = np.random.randint(1, 10, size=(2, 2, 2, 2))
-    A = ndl.Tensor(_A, device=device)
+    A = sm.Tensor(_A, device=device)
     assert (
         np.linalg.norm(
-            ndl.dilate(A, dilation=1, axes=(1, 2)).numpy()
+            sm.dilate(A, dilation=1, axes=(1, 2)).numpy()
             - np.array(
                 [
                     [
@@ -395,8 +395,8 @@ def test_dilate_backward(params, device):
     np.random.seed(0)
     shape, d, axes = params["shape"], params["d"], params["axes"]
     backward_check(
-        ndl.dilate,
-        ndl.Tensor(np.random.randn(*shape), device=device),
+        sm.dilate,
+        sm.Tensor(np.random.randn(*shape), device=device),
         dilation=d,
         axes=axes,
     )
@@ -411,17 +411,17 @@ def test_stack_vs_pytorch():
     C = np.random.randn(5, 5)
     D = np.random.randn(15, 5)
 
-    Andl = ndl.Tensor(A, requires_grad=True)
-    Bndl = ndl.Tensor(B, requires_grad=True)
-    Cndl = ndl.Tensor(C, requires_grad=True)
-    Dndl = ndl.Tensor(D, requires_grad=True)
+    Andl = sm.Tensor(A, requires_grad=True)
+    Bndl = sm.Tensor(B, requires_grad=True)
+    Cndl = sm.Tensor(C, requires_grad=True)
+    Dndl = sm.Tensor(D, requires_grad=True)
 
     Atch = torch.tensor(A, requires_grad=True)
     Btch = torch.tensor(B, requires_grad=True)
     Ctch = torch.tensor(C, requires_grad=True)
     Dtch = torch.tensor(D, requires_grad=True)
 
-    Xndl = ndl.stack([Andl, Cndl @ Bndl, Cndl], axis=1)
+    Xndl = sm.stack([Andl, Cndl @ Bndl, Cndl], axis=1)
     Xtch = torch.stack([Atch, Ctch @ Btch, Ctch], dim=1)
 
     assert Xndl.shape == Xtch.shape
@@ -460,13 +460,13 @@ conv_forward_params = [
 
 @pytest.mark.parametrize("s,cin,cout,k,stride", conv_forward_params)
 @pytest.mark.parametrize("device", _DEVICES)
-@pytest.mark.parametrize("conv_layer", [ndl.nn.Conv, ndl.nn.Conv4])
+@pytest.mark.parametrize("conv_layer", [sm.nn.Conv, sm.nn.Conv4])
 def test_nn_conv_forward(s, cin, cout, k, stride, device, conv_layer):
     np.random.seed(0)
     import torch
 
     f = conv_layer(cin, cout, k, stride=stride, device=device)
-    x = ndl.ops.randu((10, cin, s, s), device=device)
+    x = sm.ops.randu((10, cin, s, s), device=device)
 
     g = torch.nn.Conv2d(cin, cout, k, stride=stride, padding=k // 2)
     g.weight.data = torch.tensor(f.weight.cached_data.numpy().transpose(3, 2, 0, 1))
@@ -489,13 +489,13 @@ conv_back_params = [
 
 @pytest.mark.parametrize("s,cin,cout,k,stride", conv_back_params)
 @pytest.mark.parametrize("device", _DEVICES)
-@pytest.mark.parametrize("conv_layer", [ndl.nn.Conv, ndl.nn.Conv4])
+@pytest.mark.parametrize("conv_layer", [sm.nn.Conv, sm.nn.Conv4])
 def test_nn_conv_backward(s, cin, cout, k, stride, device, conv_layer):
     np.random.seed(0)
     import torch
 
     f = conv_layer(cin, cout, k, stride=stride, device=device)
-    x = ndl.ops.randu((1, cin, s, s), requires_grad=True, device=device)
+    x = sm.ops.randu((1, cin, s, s), requires_grad=True, device=device)
 
     g = torch.nn.Conv2d(cin, cout, k, stride=stride, padding=k // 2)
     g.weight.data = torch.tensor(f.weight.cached_data.numpy().transpose(3, 2, 0, 1))
@@ -549,7 +549,7 @@ op_conv_shapes = [
 @pytest.mark.parametrize("Z_shape, W_shape, stride, padding", op_conv_shapes)
 @pytest.mark.parametrize("device", _DEVICES)
 @pytest.mark.parametrize("backward", [True, False], ids=["backward", "forward"])
-@pytest.mark.parametrize("conv_op", [ndl.conv, ndl.conv4])
+@pytest.mark.parametrize("conv_op", [sm.conv, sm.conv4])
 def test_op_conv(Z_shape, W_shape, stride, padding, backward, device, conv_op):
     np.random.seed(0)
     import torch
@@ -558,8 +558,8 @@ def test_op_conv(Z_shape, W_shape, stride, padding, backward, device, conv_op):
     _Z = _Z.astype(np.float32)
     _W = np.random.randn(*W_shape) * 5
     _W = _W.astype(np.float32)
-    Z = ndl.Tensor(_Z, device=device)
-    W = ndl.Tensor(_W, device=device)
+    Z = sm.Tensor(_Z, device=device)
+    W = sm.Tensor(_W, device=device)
     y = conv_op(Z, W, padding=padding, stride=stride)
     y2 = y.sum()
     if backward:
@@ -591,12 +591,12 @@ def test_op_conv(Z_shape, W_shape, stride, padding, backward, device, conv_op):
 @pytest.mark.parametrize("model_name", ["ResNet9", "ResNet94"])
 def test_train_cifar10(device, model_name):
     np.random.seed(0)
-    dataset = ndl.data.CIFAR10Dataset("./data/cifar-10-batches-py", train=True)
-    dataloader = ndl.data.DataLoader(
+    dataset = sm.data.CIFAR10Dataset("./data/cifar-10-batches-py", train=True)
+    dataloader = sm.data.DataLoader(
         dataset=dataset,
         batch_size=128,
         shuffle=True,
-        collate_fn=ndl.data.collate_ndarray,
+        collate_fn=sm.data.collate_ndarray,
         drop_last=False,
         device=device,
         dtype="float32",
@@ -611,13 +611,13 @@ def test_train_cifar10(device, model_name):
     out = one_iter_of_cifar10_training(
         dataloader,
         model,
-        opt=ndl.optim.Adam(model.parameters(), lr=0.001, weight_decay=0.001),
+        opt=sm.optim.Adam(model.parameters(), lr=0.001, weight_decay=0.001),
     )
     assert np.linalg.norm(np.array(list(out)) - np.array([0.10156, 2.3292456])) < 1e-2
 
 
 def one_iter_of_cifar10_training(
-    dataloader, model, niter=1, loss_fn=ndl.nn.SoftmaxLoss(), opt=None
+    dataloader, model, niter=1, loss_fn=sm.nn.SoftmaxLoss(), opt=None
 ):
     np.random.seed(4)
     model.train()

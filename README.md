@@ -1,6 +1,6 @@
-# Final Project
+# simple_ml
 
-Implementation of OpenCL for the needle framework
+Implementation of OpenCL for the simple_ml framework
 
 ## Installation
 
@@ -42,3 +42,7 @@ compatibility mode to for example make kernels (`cl::compatibility::make_kernel`
   the debugger)
 - [ ] Add fixture to tests that downloads PTB and CIFAR to a data folder to run
 in unit tests
+
+## Acknowledgements
+
+Based on [the following course](https://web.archive.org/web/20220103234306/https://dlsyscourse.org/lectures/).

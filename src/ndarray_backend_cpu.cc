@@ -7,7 +7,7 @@
 #include <stdexcept>
 #include <numeric>
 
-namespace needle {
+namespace simple_ml {
 namespace cpu {
 
 #define ALIGNMENT 256
@@ -53,7 +53,7 @@ void Compact(const AlignedArray& a, AlignedArray* out, std::vector<int32_t> shap
    * Compact an array in memory
    *
    * Args:
-   *   a: non-compact represntation of the array, given as input
+   *   a: non-compact representation of the array, given as input
    *   out: compact version of the array to be written
    *   shape: shapes of each dimension for a and out
    *   strides: strides of the *a* array (not out, which has compact strides)
@@ -281,22 +281,20 @@ void EwiseTanh(const AlignedArray& a, AlignedArray* out) {
 }
 /// END YOUR SOLUTION
 
-void Matmul(const AlignedArray& a, const AlignedArray& b, AlignedArray* out, uint32_t m, uint32_t n,
-            uint32_t p) {
+void Matmul(const AlignedArray& a, const AlignedArray& b, AlignedArray* out,
+            uint32_t m, uint32_t n, uint32_t p) {
   /**
-   * Multiply two (compact) matrices into an output (also comapct) matrix.  For this implementation
-   * you can use the "naive" three-loop algorithm.
+   * Multiply two (compact) matrices into an output (also compact) matrix.
    *
    * Args:
    *   a: compact 2D array of size m x n
-   *   b: comapct 2D array of size n x p
+   *   b: compact 2D array of size n x p
    *   out: compact 2D array of size m x p to write the output to
    *   m: rows of a / out
    *   n: columns of a / rows of b
-   *   p: coolumns of b / out
+   *   p: columns of b / out
    */
 
-  /// BEGIN YOUR SOLUTION
   size_t cnt = 0;
   for(size_t i = 0; i < m; i++) {
     for(size_t j = 0; j < p; j++){
@@ -307,7 +305,6 @@ void Matmul(const AlignedArray& a, const AlignedArray& b, AlignedArray* out, uin
       out->ptr[cnt++] = sum;
     }
   }
-  /// END YOUR SOLUTION
 }
 
 inline void AlignedDot(const float* __restrict__ a,
@@ -502,11 +499,11 @@ uint32_t C_out, uint32_t K, uint32_t stride)
 }
 
 }  // namespace cpu
-}  // namespace needle
+}  // namespace simple_ml
 
 PYBIND11_MODULE(ndarray_backend_cpu, m) {
   namespace py = pybind11;
-  using namespace needle;
+  using namespace simple_ml;
   using namespace cpu;
 
   m.attr("__device_name__") = "cpu";

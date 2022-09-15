@@ -3,3 +3,5 @@ black
 flake8-bugbear
 pytest
 jupyter
+matplotlib
+seaborn

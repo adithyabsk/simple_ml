@@ -4,7 +4,7 @@ sys.path.append("./python")
 import numpy as np
 import pytest
 
-import simple_ml as ndl
+import simple_ml as sm
 import simple_ml.nn as nn
 
 sys.path.append("./apps")
@@ -13,12 +13,12 @@ sys.path.append("./apps")
 
 def get_tensor(*shape, entropy=1):
     np.random.seed(np.prod(shape) * len(shape) * entropy)
-    return ndl.Tensor(np.random.randint(0, 100, size=shape) / 20, dtype="float32")
+    return sm.Tensor(np.random.randint(0, 100, size=shape) / 20, dtype="float32")
 
 
 def get_int_tensor(*shape, low=0, high=10, entropy=1):
     np.random.seed(np.prod(shape) * len(shape) * entropy)
-    return ndl.Tensor(np.random.randint(low, high, size=shape))
+    return sm.Tensor(np.random.randint(low, high, size=shape))
 
 
 def check_prng(*shape):
@@ -31,7 +31,7 @@ def check_prng(*shape):
 
 def batchnorm_forward(*shape, affine=False):
     x = get_tensor(*shape)
-    bn = ndl.nn.BatchNorm(shape[1])
+    bn = sm.nn.BatchNorm(shape[1])
     if affine:
         bn.weight.data = get_tensor(shape[1], entropy=42)
         bn.bias.data = get_tensor(shape[1], entropy=1337)
@@ -40,7 +40,7 @@ def batchnorm_forward(*shape, affine=False):
 
 def batchnorm_backward(*shape, affine=False):
     x = get_tensor(*shape)
-    bn = ndl.nn.BatchNorm(shape[1])
+    bn = sm.nn.BatchNorm(shape[1])
     if affine:
         bn.weight.data = get_tensor(shape[1], entropy=42)
         bn.bias.data = get_tensor(shape[1], entropy=1337)
@@ -49,7 +49,7 @@ def batchnorm_backward(*shape, affine=False):
 
 
 def batchnorm_running_mean(*shape, iters=10):
-    bn = ndl.nn.BatchNorm(shape[1])
+    bn = sm.nn.BatchNorm(shape[1])
     for i in range(iters):
         x = get_tensor(*shape, entropy=i)
         y = bn(x)
@@ -57,7 +57,7 @@ def batchnorm_running_mean(*shape, iters=10):
 
 
 def batchnorm_running_var(*shape, iters=10):
-    bn = ndl.nn.BatchNorm(shape[1])
+    bn = sm.nn.BatchNorm(shape[1])
     for i in range(iters):
         x = get_tensor(*shape, entropy=i)
         y = bn(x)
@@ -65,7 +65,7 @@ def batchnorm_running_var(*shape, iters=10):
 
 
 def batchnorm_running_grad(*shape, iters=10):
-    bn = ndl.nn.BatchNorm(shape[1])
+    bn = sm.nn.BatchNorm(shape[1])
     for i in range(iters):
         x = get_tensor(*shape, entropy=i)
         y = bn(x)
@@ -75,26 +75,26 @@ def batchnorm_running_grad(*shape, iters=10):
 
 
 def relu_forward(*shape):
-    f = ndl.nn.ReLU()
+    f = sm.nn.ReLU()
     x = get_tensor(*shape)
     return f(x).numpy()
 
 
 def relu_backward(*shape):
-    f = ndl.nn.ReLU()
+    f = sm.nn.ReLU()
     x = get_tensor(*shape)
     (f(x) ** 2).sum().backward()
     return x.grad.numpy()
 
 
 def layernorm_forward(shape, dims):
-    f = ndl.nn.LayerNorm(dims)
+    f = sm.nn.LayerNorm(dims)
     x = get_tensor(*shape)
     return f(x).numpy()
 
 
 def layernorm_backward(shape, dims):
-    f = ndl.nn.LayerNorm(dims)
+    f = sm.nn.LayerNorm(dims)
     x = get_tensor(*shape)
     (f(x) ** 4).sum().backward()
     return x.grad.numpy()
@@ -103,14 +103,14 @@ def layernorm_backward(shape, dims):
 def softmax_loss_forward(rows, classes):
     x = get_tensor(rows, classes)
     y = get_int_tensor(rows, low=0, high=classes)
-    f = ndl.nn.SoftmaxLoss()
+    f = sm.nn.SoftmaxLoss()
     return f(x, y).numpy()
 
 
 def softmax_loss_backward(rows, classes):
     x = get_tensor(rows, classes)
     y = get_int_tensor(rows, low=0, high=classes)
-    f = ndl.nn.SoftmaxLoss()
+    f = sm.nn.SoftmaxLoss()
     loss = f(x, y)
     loss.backward()
     return x.grad.numpy()
@@ -118,7 +118,7 @@ def softmax_loss_backward(rows, classes):
 
 def linear_forward(lhs_shape, rhs_shape):
     np.random.seed(199)
-    f = ndl.nn.Linear(*lhs_shape)
+    f = sm.nn.Linear(*lhs_shape)
     f.bias.data = get_tensor(lhs_shape[-1])
     x = get_tensor(*rhs_shape)
     return f(x).numpy()
@@ -126,7 +126,7 @@ def linear_forward(lhs_shape, rhs_shape):
 
 def linear_backward(lhs_shape, rhs_shape):
     np.random.seed(199)
-    f = ndl.nn.Linear(*lhs_shape)
+    f = sm.nn.Linear(*lhs_shape)
     f.bias.data = get_tensor(lhs_shape[-1])
     x = get_tensor(*rhs_shape)
     (f(x) ** 2).sum().backward()
@@ -185,7 +185,7 @@ def learn_model_1d(feature_size, nclasses, _model, optimizer, epochs=1, **kwargs
             zip(np.array_split(X, m // batch), np.array_split(y, m // batch))
         ):
             opt.reset_grad()
-            X0, y0 = ndl.Tensor(X0), ndl.Tensor(y0)
+            X0, y0 = sm.Tensor(X0), sm.Tensor(y0)
             out = model(X0)
             loss = loss_func(out, y0)
             loss.backward()
@@ -218,14 +218,14 @@ def learn_model_1d_eval(feature_size, nclasses, _model, optimizer, epochs=1, **k
         zip(np.array_split(X, m // batch), np.array_split(y, m // batch))
     ):
         opt.reset_grad()
-        X0, y0 = ndl.Tensor(X0), ndl.Tensor(y0)
+        X0, y0 = sm.Tensor(X0), sm.Tensor(y0)
         out = model(X0)
         loss = loss_func(out, y0)
         loss.backward()
         opt.step()
 
-    X_test = ndl.Tensor(get_tensor(batch, feature_size).cached_data)
-    y_test = ndl.Tensor(
+    X_test = sm.Tensor(get_tensor(batch, feature_size).cached_data)
+    y_test = sm.Tensor(
         get_int_tensor(batch, low=0, high=nclasses).cached_data.astype(np.uint8)
     )
 
@@ -242,22 +242,22 @@ def init_a_tensor_of_shape(shape, init_fn):
 
 
 def global_tensor_count():
-    return np.array(ndl.autograd.TENSOR_COUNTER)
+    return np.array(sm.autograd.TENSOR_COUNTER)
 
 
 def nn_linear_weight_init():
     np.random.seed(1337)
-    f = ndl.nn.Linear(7, 4)
+    f = sm.nn.Linear(7, 4)
     return f.weight.numpy()
 
 
 def nn_linear_bias_init():
     np.random.seed(1337)
-    f = ndl.nn.Linear(7, 4)
+    f = sm.nn.Linear(7, 4)
     return f.bias.numpy()
 
 
-class UselessModule(ndl.nn.Module):
+class UselessModule(sm.nn.Module):
     def __init__(self):
         super().__init__()
         self.stuff = {
@@ -315,12 +315,12 @@ def power_scalar_backward(shape, power=2):
 
 def logsoftmax_forward(shape, mult=1.0):
     x = get_tensor(*shape) * mult
-    return ndl.ops.logsoftmax(x).numpy()
+    return sm.ops.logsoftmax(x).numpy()
 
 
 def logsoftmax_backward(shape, mult=1.0):
     x = get_tensor(*shape)
-    y = ndl.ops.logsoftmax(x * mult)
+    y = sm.ops.logsoftmax(x * mult)
     z = (y**2).sum()
     z.backward()
     return x.grad.numpy()
@@ -431,7 +431,7 @@ def test_op_logsoftmax_backward_1():
 def test_init_uniform_1():
     np.testing.assert_allclose(
         init_a_tensor_of_shape(
-            (3, 5), lambda x: ndl.init.uniform(x, low=-0.42, high=13.37)
+            (3, 5), lambda x: sm.init.uniform(x, low=-0.42, high=13.37)
         ),
         np.array(
             [
@@ -449,7 +449,7 @@ def test_init_uniform_1():
 def test_init_normal_1():
     np.testing.assert_allclose(
         init_a_tensor_of_shape(
-            (3, 5), lambda x: ndl.init.normal(x, mean=13.37, std=4.2)
+            (3, 5), lambda x: sm.init.normal(x, mean=13.37, std=4.2)
         ),
         np.array(
             [
@@ -466,7 +466,7 @@ def test_init_normal_1():
 
 def test_init_constant_1():
     np.testing.assert_allclose(
-        init_a_tensor_of_shape((3, 5), lambda x: ndl.init.constant(x, c=3)),
+        init_a_tensor_of_shape((3, 5), lambda x: sm.init.constant(x, c=3)),
         np.array(
             [
                 [3.0, 3.0, 3.0, 3.0, 3.0],
@@ -482,7 +482,7 @@ def test_init_constant_1():
 
 def test_init_ones_1():
     np.testing.assert_allclose(
-        init_a_tensor_of_shape((3, 5), lambda x: ndl.init.ones(x)),
+        init_a_tensor_of_shape((3, 5), lambda x: sm.init.ones(x)),
         np.array(
             [
                 [1.0, 1.0, 1.0, 1.0, 1.0],
@@ -498,7 +498,7 @@ def test_init_ones_1():
 
 def test_init_zeros_1():
     np.testing.assert_allclose(
-        init_a_tensor_of_shape((3, 5), lambda x: ndl.init.zeros(x)),
+        init_a_tensor_of_shape((3, 5), lambda x: sm.init.zeros(x)),
         np.array(
             [
                 [0.0, 0.0, 0.0, 0.0, 0.0],
@@ -515,7 +515,7 @@ def test_init_zeros_1():
 def test_init_kaiming_uniform_1():
     np.testing.assert_allclose(
         init_a_tensor_of_shape(
-            (3, 5), lambda x: ndl.init.kaiming_uniform(x, mode="fan_in")
+            (3, 5), lambda x: sm.init.kaiming_uniform(x, mode="fan_in")
         ),
         np.array(
             [
@@ -533,7 +533,7 @@ def test_init_kaiming_uniform_1():
 def test_init_kaiming_uniform_2():
     np.testing.assert_allclose(
         init_a_tensor_of_shape(
-            (3, 5), lambda x: ndl.init.kaiming_uniform(x, mode="fan_out")
+            (3, 5), lambda x: sm.init.kaiming_uniform(x, mode="fan_out")
         ),
         np.array(
             [
@@ -551,7 +551,7 @@ def test_init_kaiming_uniform_2():
 def test_init_kaiming_normal_1():
     np.testing.assert_allclose(
         init_a_tensor_of_shape(
-            (3, 5), lambda x: ndl.init.kaiming_normal(x, mode="fan_in")
+            (3, 5), lambda x: sm.init.kaiming_normal(x, mode="fan_in")
         ),
         np.array(
             [
@@ -569,7 +569,7 @@ def test_init_kaiming_normal_1():
 def test_init_kaiming_normal_2():
     np.testing.assert_allclose(
         init_a_tensor_of_shape(
-            (3, 5), lambda x: ndl.init.kaiming_normal(x, mode="fan_out")
+            (3, 5), lambda x: sm.init.kaiming_normal(x, mode="fan_out")
         ),
         np.array(
             [
@@ -586,7 +586,7 @@ def test_init_kaiming_normal_2():
 
 def test_init_xavier_uniform_1():
     np.testing.assert_allclose(
-        init_a_tensor_of_shape((3, 5), lambda x: ndl.init.xavier_uniform(x, gain=1.5)),
+        init_a_tensor_of_shape((3, 5), lambda x: sm.init.xavier_uniform(x, gain=1.5)),
         np.array(
             [
                 [-0.32595432, 1.1709901, 0.60273796, 0.25632226, -0.8936898],
@@ -602,7 +602,7 @@ def test_init_xavier_uniform_1():
 
 def test_init_xavier_normal_1():
     np.testing.assert_allclose(
-        init_a_tensor_of_shape((3, 5), lambda x: ndl.init.xavier_normal(x, gain=0.33)),
+        init_a_tensor_of_shape((3, 5), lambda x: sm.init.xavier_normal(x, gain=0.33)),
         np.array(
             [
                 [0.08195783, -0.022813609, 0.10686861, 0.25129992, -0.038635306],
@@ -2349,7 +2349,7 @@ def test_optim_sgd_vanilla_1():
             16,
             # lambda z: nn.Linear(64, 16),
             lambda z: nn.Sequential(nn.Linear(64, 32), nn.ReLU(), nn.Linear(32, 16)),
-            ndl.optim.SGD,
+            sm.optim.SGD,
             lr=0.01,
             momentum=0.0,
         ),
@@ -2365,7 +2365,7 @@ def test_optim_sgd_momentum_1():
             64,
             16,
             lambda z: nn.Sequential(nn.Linear(64, 32), nn.ReLU(), nn.Linear(32, 16)),
-            ndl.optim.SGD,
+            sm.optim.SGD,
             lr=0.01,
             momentum=0.9,
         ),
@@ -2381,7 +2381,7 @@ def test_optim_sgd_weight_decay_1():
             64,
             16,
             lambda z: nn.Sequential(nn.Linear(64, 32), nn.ReLU(), nn.Linear(32, 16)),
-            ndl.optim.SGD,
+            sm.optim.SGD,
             lr=0.01,
             momentum=0.0,
             weight_decay=0.01,
@@ -2398,7 +2398,7 @@ def test_optim_sgd_momentum_weight_decay_1():
             64,
             16,
             lambda z: nn.Sequential(nn.Linear(64, 32), nn.ReLU(), nn.Linear(32, 16)),
-            ndl.optim.SGD,
+            sm.optim.SGD,
             lr=0.01,
             momentum=0.9,
             weight_decay=0.01,
@@ -2420,7 +2420,7 @@ def test_optim_sgd_layernorm_residual_1():
                 nn.Residual(nn.Linear(8, 8), nn.ReLU(), nn.LayerNorm(8)),
                 nn.Linear(8, 16),
             ),
-            ndl.optim.SGD,
+            sm.optim.SGD,
             epochs=3,
             lr=0.01,
             weight_decay=0.001,
@@ -2446,7 +2446,7 @@ def test_optim_adam_1():
             64,
             16,
             lambda z: nn.Sequential(nn.Linear(64, 32), nn.ReLU(), nn.Linear(32, 16)),
-            ndl.optim.Adam,
+            sm.optim.Adam,
             lr=0.001,
             bias_correction=False,
         ),
@@ -2462,7 +2462,7 @@ def test_optim_adam_weight_decay_1():
             64,
             16,
             lambda z: nn.Sequential(nn.Linear(64, 32), nn.ReLU(), nn.Linear(32, 16)),
-            ndl.optim.Adam,
+            sm.optim.Adam,
             lr=0.001,
             weight_decay=0.01,
             bias_correction=False,
@@ -2481,7 +2481,7 @@ def test_optim_adam_batchnorm_1():
             lambda z: nn.Sequential(
                 nn.Linear(64, 32), nn.ReLU(), nn.BatchNorm(32), nn.Linear(32, 16)
             ),
-            ndl.optim.Adam,
+            sm.optim.Adam,
             lr=0.001,
             weight_decay=0.001,
             bias_correction=False,
@@ -2500,7 +2500,7 @@ def test_optim_adam_batchnorm_eval_mode_1():
             lambda z: nn.Sequential(
                 nn.Linear(64, 32), nn.ReLU(), nn.BatchNorm(32), nn.Linear(32, 16)
             ),
-            ndl.optim.Adam,
+            sm.optim.Adam,
             lr=0.001,
             weight_decay=0.001,
             bias_correction=False,
@@ -2519,7 +2519,7 @@ def test_optim_adam_layernorm_1():
             lambda z: nn.Sequential(
                 nn.Linear(64, 32), nn.ReLU(), nn.LayerNorm(32), nn.Linear(32, 16)
             ),
-            ndl.optim.Adam,
+            sm.optim.Adam,
             lr=0.01,
             weight_decay=0.01,
             bias_correction=False,
@@ -2536,7 +2536,7 @@ def test_optim_adam_weight_decay_bias_correction_1():
             64,
             16,
             lambda z: nn.Sequential(nn.Linear(64, 32), nn.ReLU(), nn.Linear(32, 16)),
-            ndl.optim.Adam,
+            sm.optim.Adam,
             lr=0.001,
             weight_decay=0.01,
             bias_correction=True,

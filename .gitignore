@@ -91,6 +91,10 @@ cython_debug/
 # Custom
 .DS_Store
 .python-version
-#*.ipynb
 data/*
 .idea
+
+# Sourcetrail
+simple_ml.srctrlbm
+simple_ml.srctrldb
+simple_ml.srctrlprj

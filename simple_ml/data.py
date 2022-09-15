@@ -19,9 +19,8 @@ class FlipHorizontal(Transform):
         pass
 
     def __call__(self, img):
-        ### BEGIN YOUR SOLUTION
+
         raise NotImplementedError()
-        ### END YOUR SOLUTION
 
 
 class RandomCrop(Transform):
@@ -29,9 +28,8 @@ class RandomCrop(Transform):
         self.padding = padding
 
     def __call__(self, _x):
-        ### BEGIN YOUR SOLUTION
+
         raise NotImplementedError()
-        ### END YOUR SOLUTION
 
 
 class Sampler:
@@ -57,19 +55,16 @@ class SequentialSampler(Sampler):
     data_source: Sized
 
     def __init__(self, data_source: Sized) -> None:
-        ### BEGIN YOUR SOLUTION
+
         self.data_source = data_source
-        ### END YOUR SOLUTION
 
     def __iter__(self) -> Iterator[int]:
-        ### BEGIN YOUR SOLUTION
+
         return iter(range(len(self.data_source)))
-        ### END YOUR SOLUTION
 
     def __len__(self) -> int:
-        ### BEGIN YOUR SOLUTION
+
         return len(self.data_source)
-        ### END YOUR SOLUTION
 
 
 class RandomSampler(Sampler):
@@ -113,7 +108,7 @@ class RandomSampler(Sampler):
         #                      "value, but got num_samples={}".format(self.num_samples))
 
     def __iter__(self) -> Iterator[int]:
-        ### BEGIN YOUR SOLUTION
+
         n = len(self.data_source)
         if self.replacement:
             for _ in range(self.num_sample // 32):
@@ -125,12 +120,10 @@ class RandomSampler(Sampler):
             ).tolist()
         else:
             yield from np.random.permutation(n).tolist()
-        ### END YOUR SOLUTION
 
     def __len__(self) -> int:
-        ### BEGIN YOUR SOLUTION
+
         return self.num_samples
-        ### END YOUR SOLUTION
 
 
 class BatchSampler(Sampler):
@@ -172,7 +165,7 @@ class BatchSampler(Sampler):
         self.drop_last = drop_last
 
     def __iter__(self) -> Iterator[List[int]]:
-        ### BEGIN YOUR SOLUTION
+
         batch = []
         for idx in self.sampler:
             batch.append(idx)
@@ -182,15 +175,13 @@ class BatchSampler(Sampler):
 
         if len(batch) > 0 and not self.drop_last:
             yield batch
-        ### END YOUR SOLUTION
 
     def __len__(self) -> int:
-        ### BEGIN YOUR SOLUTION
+
         if self.drop_last:
             return len(self.sampler) // self.batch_size
         else:
             return (len(self.sampler) + self.batch_size - 1) // self.batch_size
-        ### END YOUR SOLUTION
 
 
 def default_collate(batch, device, dtype):
@@ -202,7 +193,7 @@ def collate_ndarray(batch, device, dtype):
     """
     Returns Tensor batch with nd array backend
     """
-    ### BEGIN YOUR SOLUTION
+
     if type(batch) == tuple:
         return (
             Tensor(nd.array(batch[0]), device=device, dtype=dtype),
@@ -218,7 +209,6 @@ def collate_ndarray(batch, device, dtype):
             Tensor(nd.array(xs), device=device, dtype=dtype),
             Tensor(nd.array(ys), device=device, dtype=dtype),
         )
-    ### END YOUR SOLUTION
 
 
 class Dataset:
@@ -433,7 +423,7 @@ class _IterableDatasetFetcher(_BaseDatasetFetcher):
         self.dtype = dtype
 
     def fetch(self, possibly_batched_index):
-        ### BEGIN YOUR SOLUTION
+
         if self.ended:
             raise StopIteration
 
@@ -453,7 +443,6 @@ class _IterableDatasetFetcher(_BaseDatasetFetcher):
             data = self.dataset[possibly_batched_index]
 
         return self.collate_fn(data, self.device, self.dtype)
-        ### END YOUR SOLUTION
 
 
 def parse_mnist(image_filename, label_filename):
@@ -475,9 +464,8 @@ def parse_mnist(image_filename, label_filename):
                 labels of the examples.  Values should be of type np.int8 and
                 for MNIST will contain the values 0-9.
     """
-    ### BEGIN YOUR SOLUTION
+
     raise NotImplementedError()
-    ### END YOUR SOLUTION
 
 
 class MNISTDataset(Dataset):
@@ -488,19 +476,16 @@ class MNISTDataset(Dataset):
         p: Optional[int] = 0.5,
         transforms: Optional[List] = None,
     ):
-        ### BEGIN YOUR SOLUTION
+
         raise NotImplementedError()
-        ### END YOUR SOLUTION
 
     def __getitem__(self, index) -> object:
-        ### BEGIN YOUR SOLUTION
+
         raise NotImplementedError()
-        ### END YOUR SOLUTION
 
     def __len__(self) -> int:
-        ### BEGIN YOUR SOLUTION
+
         raise NotImplementedError()
-        ### END YOUR SOLUTION
 
 
 class CIFAR10Dataset(Dataset):
@@ -522,7 +507,7 @@ class CIFAR10Dataset(Dataset):
         X - numpy array of images
         y - numpy array of labels
         """
-        ### BEGIN YOUR SOLUTION
+
         super().__init__(p, transforms)
         if train:
             downloaded_list = [
@@ -547,7 +532,6 @@ class CIFAR10Dataset(Dataset):
 
         self.X = np.vstack(self.X).reshape(-1, 3, 32, 32)
         self.X = self.X.transpose((0, 2, 3, 1)) / 255.0
-        ### END YOUR SOLUTION
 
     def __getitem__(self, index) -> object:
         """
@@ -555,21 +539,19 @@ class CIFAR10Dataset(Dataset):
 
         Image should be of shape (3, 32, 32)
         """
-        ### BEGIN YOUR SOLUTION
+
         x, y = self.X[index], self.y[index]
         x = x.transpose(2, 0, 1)
         x = self.apply_transforms(x)
 
         return x, y
-        ### END YOUR SOLUTION
 
     def __len__(self) -> int:
         """
         Returns the total number of examples in the dataset
         """
-        ### BEGIN YOUR SOLUTION
+
         return len(self.y)
-        ### END YOUR SOLUTION
 
 
 class Dictionary(object):
@@ -596,20 +578,18 @@ class Dictionary(object):
 
         Returns the word's unique ID.
         """
-        ### BEGIN YOUR SOLUTION
+
         if word not in self.word2idx:
             word_idx = len(self.idx2word)
             self.idx2word.append(word)
             self.word2idx[word] = word_idx
-        ### END YOUR SOLUTION
 
     def __len__(self):
         """
         Returns the number of unique words in the dictionary.
         """
-        ### BEGIN YOUR SOLUTION
+
         return len(self.word2idx)
-        ### END YOUR SOLUTION
 
 
 class Corpus(object):
@@ -636,7 +616,7 @@ class Corpus(object):
         Output:
         ids: List of ids
         """
-        ### BEGIN YOUR SOLUTION
+
         id_list = []
         with open(path, "r") as fopen:
             for i, line in enumerate(fopen.readlines()):
@@ -648,7 +628,6 @@ class Corpus(object):
                     id_list.append(self.dictionary.word2idx[word])
                 # import pdb; pdb.set_trace()
         return id_list
-        ### END YOUR SOLUTION
 
 
 def batchify(data, batch_size, device, dtype):
@@ -669,14 +648,13 @@ def batchify(data, batch_size, device, dtype):
 
     Returns the data as a numpy array of shape (nbatch, batch_size).
     """
-    ### BEGIN YOUR SOLUTION
+
     data_size = len(data)
     row_size = data_size // batch_size
     chop = data_size % batch_size
     if chop != 0:
         data = data[:-chop]
     return np.array(data).reshape((batch_size, row_size)).T
-    ### END YOUR SOLUTION
 
 
 def get_batch(batches, i, bptt, device=None, dtype=None):
@@ -700,7 +678,7 @@ def get_batch(batches, i, bptt, device=None, dtype=None):
     data - Tensor of shape (bptt, bs) with cached data as NDArray
     target - Tensor of shape (bptt*bs,) with cached data as NDArray
     """
-    ### BEGIN YOUR SOLUTION
+
     chop = batches.shape[0] % bptt
     # import pdb; pdb.set_trace()
     if chop != 0:
@@ -710,4 +688,3 @@ def get_batch(batches, i, bptt, device=None, dtype=None):
     data = Tensor(shaped[i], device=device, dtype=dtype)
     target = Tensor(shaped[i + 1].ravel(), device=device, dtype=dtype)
     return data, target
-    ### END YOUR SOLUTION

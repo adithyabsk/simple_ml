@@ -101,74 +101,64 @@ def mul_scalar(inputs, attrs):
 
 @register_numpy_compute("EWiseDiv")
 def divide(inputs, attrs):
-    ### BEGIN YOUR SOLUTION
+
     return np.divide(inputs[0], inputs[1]).astype(inputs[0].dtype)
-    ### END YOUR SOLUTION
 
 
 @register_numpy_compute("DivScalar")
 def divide_scalar(inputs, attrs):
-    ### BEGIN YOUR SOLUTION
+
     return np.divide(inputs[0], attrs["scalar"]).astype(inputs[0].dtype)
-    ### END YOUR SOLUTION
 
 
 @register_numpy_compute("PowerScalar")
 def power_scalar(inputs, attrs):
-    ### BEGIN YOUR SOLUTION
+
     return np.power(inputs[0], attrs["scalar"]).astype(inputs[0].dtype)
-    ### END YOUR SOLUTION
 
 
 @register_numpy_compute("MatMul")
 def matmul(inputs, attrs):
-    ### BEGIN YOUR SOLUTION
+
     return np.matmul(inputs[0], inputs[1]).astype(inputs[0].dtype)
-    ### END YOUR SOLUTION
 
 
 @register_numpy_compute("Summation")
 def summation(inputs, attrs):
-    ### BEGIN YOUR SOLUTION
+
     return np.sum(inputs[0], axis=attrs["axes"])
-    ### END YOUR SOLUTION
 
 
 @register_numpy_compute("BroadcastTo")
 def broadcast_to(inputs, attrs):
-    ### BEGIN YOUR SOLUTION
+
     return np.broadcast_to(inputs[0], shape=attrs["shape"])
-    ### END YOUR SOLUTION
 
 
 @register_numpy_compute("Reshape")
 def reshape(inputs, attrs):
-    ### BEGIN YOUR SOLUTION
+
     return np.reshape(inputs[0], newshape=attrs["shape"])
-    ### END YOUR SOLUTION
 
 
 @register_numpy_compute("Negate")
 def negate(inputs, attrs):
-    ### BEGIN YOUR SOLUTION
+
     return np.multiply(inputs[0], -1)
-    ### END YOUR SOLUTION
 
 
 @register_numpy_compute("Transpose")
 def transpose(inputs, attrs):
-    ### BEGIN YOUR SOLUTION
+
     shape_size = len(inputs[0].shape)
     axes = attrs.get("axes", None) or (shape_size - 2, shape_size - 1)
     return np.swapaxes(inputs[0], axes[0], axes[1])
-    ### END YOUR SOLUTION
 
 
 @register_numpy_compute("Log")
 def log(inputs, attrs):
-    ### BEGIN YOUR SOLUTION
+
     return np.log(inputs[0])
-    ### END YOUR SOLUTION
 
 
 @register_numpy_compute("Exp")
@@ -178,14 +168,12 @@ def exp(inputs, attrs):
 
 @register_numpy_compute("ReLU")
 def relu(inputs, attrs):
-    ### BEGIN YOUR SOLUTION
+
     return np.maximum(inputs[0], 0)
-    ### END YOUR SOLUTION
 
 
 @register_numpy_compute("LogSoftmax")
 def logsoftmax(inputs, attrs):
-    ### BEGIN YOUR SOLUTION
+
     x = inputs[0] - np.max(inputs[0], axis=-1, keepdims=True)
     return x - np.log(np.sum(np.exp(x), axis=-1, keepdims=True))
-    ### END YOUR SOLUTION

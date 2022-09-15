@@ -1,25 +1,19 @@
 import sys
 
-sys.path.append("./python")
-sys.path.append("./apps")
-import itertools
-
-import numpy as np
 import pytest
 import torch
-from models import LanguageModel
-from simple_training import *
 
-import simple_ml as ndl
+import simple_ml as sm
 import simple_ml.nn as nn
+from apps.simple_training import *
 
 np.random.seed(3)
 
 
 _DEVICES = [
-    ndl.cpu(),
+    sm.cpu(),
     pytest.param(
-        ndl.cuda(), marks=pytest.mark.skipif(not ndl.cuda().enabled(), reason="No GPU")
+        sm.cuda(), marks=pytest.mark.skipif(not sm.cuda().enabled(), reason="No GPU")
     ),
 ]
 
@@ -56,19 +50,15 @@ def test_rnn_cell(
     model = nn.RNNCell(
         input_size, hidden_size, device=device, bias=bias, nonlinearity=nonlinearity
     )
-    model.W_ih = ndl.Tensor(
-        model_.weight_ih.detach().numpy().transpose(), device=device
-    )
-    model.W_hh = ndl.Tensor(
-        model_.weight_hh.detach().numpy().transpose(), device=device
-    )
+    model.W_ih = sm.Tensor(model_.weight_ih.detach().numpy().transpose(), device=device)
+    model.W_hh = sm.Tensor(model_.weight_hh.detach().numpy().transpose(), device=device)
     if bias:
-        model.bias_ih = ndl.Tensor(model_.bias_ih.detach().numpy(), device=device)
-        model.bias_hh = ndl.Tensor(model_.bias_hh.detach().numpy(), device=device)
+        model.bias_ih = sm.Tensor(model_.bias_ih.detach().numpy(), device=device)
+        model.bias_hh = sm.Tensor(model_.bias_hh.detach().numpy(), device=device)
     if init_hidden:
-        h = model(ndl.Tensor(x, device=device), ndl.Tensor(h0, device=device))
+        h = model(sm.Tensor(x, device=device), sm.Tensor(h0, device=device))
     else:
-        h = model(ndl.Tensor(x, device=device), None)
+        h = model(sm.Tensor(x, device=device), None)
     assert h.device == device
     np.testing.assert_allclose(h_.detach().numpy(), h.numpy(), atol=1e-5, rtol=1e-5)
     h.sum().backward()
@@ -100,23 +90,19 @@ def test_lstm_cell(batch_size, input_size, hidden_size, bias, init_hidden, devic
 
     model = nn.LSTMCell(input_size, hidden_size, device=device, bias=bias)
 
-    model.W_ih = ndl.Tensor(
-        model_.weight_ih.detach().numpy().transpose(), device=device
-    )
-    model.W_hh = ndl.Tensor(
-        model_.weight_hh.detach().numpy().transpose(), device=device
-    )
+    model.W_ih = sm.Tensor(model_.weight_ih.detach().numpy().transpose(), device=device)
+    model.W_hh = sm.Tensor(model_.weight_hh.detach().numpy().transpose(), device=device)
     if bias:
-        model.bias_ih = ndl.Tensor(model_.bias_ih.detach().numpy(), device=device)
-        model.bias_hh = ndl.Tensor(model_.bias_hh.detach().numpy(), device=device)
+        model.bias_ih = sm.Tensor(model_.bias_ih.detach().numpy(), device=device)
+        model.bias_hh = sm.Tensor(model_.bias_hh.detach().numpy(), device=device)
 
     if init_hidden:
         h, c = model(
-            ndl.Tensor(x, device=device),
-            (ndl.Tensor(h0, device=device), ndl.Tensor(c0, device=device)),
+            sm.Tensor(x, device=device),
+            (sm.Tensor(h0, device=device), sm.Tensor(c0, device=device)),
         )
     else:
-        h, c = model(ndl.Tensor(x, device=device), None)
+        h, c = model(sm.Tensor(x, device=device), None)
     np.testing.assert_allclose(h_.detach().numpy(), h.numpy(), atol=1e-5, rtol=1e-5)
     np.testing.assert_allclose(c_.detach().numpy(), c.numpy(), atol=1e-5, rtol=1e-5)
 
@@ -178,25 +164,25 @@ def test_rnn(
         nonlinearity=nonlinearity,
     )
     for k in range(num_layers):
-        model.rnn_cells[k].W_ih = ndl.Tensor(
+        model.rnn_cells[k].W_ih = sm.Tensor(
             getattr(model_, f"weight_ih_l{k}").detach().numpy().transpose(),
             device=device,
         )
-        model.rnn_cells[k].W_hh = ndl.Tensor(
+        model.rnn_cells[k].W_hh = sm.Tensor(
             getattr(model_, f"weight_hh_l{k}").detach().numpy().transpose(),
             device=device,
         )
         if bias:
-            model.rnn_cells[k].bias_ih = ndl.Tensor(
+            model.rnn_cells[k].bias_ih = sm.Tensor(
                 getattr(model_, f"bias_ih_l{k}").detach().numpy(), device=device
             )
-            model.rnn_cells[k].bias_hh = ndl.Tensor(
+            model.rnn_cells[k].bias_hh = sm.Tensor(
                 getattr(model_, f"bias_hh_l{k}").detach().numpy(), device=device
             )
     if init_hidden:
-        output, h = model(ndl.Tensor(x, device=device), ndl.Tensor(h0, device=device))
+        output, h = model(sm.Tensor(x, device=device), sm.Tensor(h0, device=device))
     else:
-        output, h = model(ndl.Tensor(x, device=device), None)
+        output, h = model(sm.Tensor(x, device=device), None)
 
     np.testing.assert_allclose(h_.detach().numpy(), h.numpy(), atol=1e-5, rtol=1e-5)
     np.testing.assert_allclose(
@@ -245,28 +231,28 @@ def test_lstm(
 
     model = nn.LSTM(input_size, hidden_size, num_layers, bias, device=device)
     for k in range(num_layers):
-        model.lstm_cells[k].W_ih = ndl.Tensor(
+        model.lstm_cells[k].W_ih = sm.Tensor(
             getattr(model_, f"weight_ih_l{k}").detach().numpy().transpose(),
             device=device,
         )
-        model.lstm_cells[k].W_hh = ndl.Tensor(
+        model.lstm_cells[k].W_hh = sm.Tensor(
             getattr(model_, f"weight_hh_l{k}").detach().numpy().transpose(),
             device=device,
         )
         if bias:
-            model.lstm_cells[k].bias_ih = ndl.Tensor(
+            model.lstm_cells[k].bias_ih = sm.Tensor(
                 getattr(model_, f"bias_ih_l{k}").detach().numpy(), device=device
             )
-            model.lstm_cells[k].bias_hh = ndl.Tensor(
+            model.lstm_cells[k].bias_hh = sm.Tensor(
                 getattr(model_, f"bias_hh_l{k}").detach().numpy(), device=device
             )
     if init_hidden:
         output, (h, c) = model(
-            ndl.Tensor(x, device=device),
-            (ndl.Tensor(h0, device=device), ndl.Tensor(c0, device=device)),
+            sm.Tensor(x, device=device),
+            (sm.Tensor(h0, device=device), sm.Tensor(c0, device=device)),
         )
     else:
-        output, (h, c) = model(ndl.Tensor(x, device=device), None)
+        output, (h, c) = model(sm.Tensor(x, device=device), None)
 
     np.testing.assert_allclose(h_.detach().numpy(), h.numpy(), atol=1e-5, rtol=1e-5)
     np.testing.assert_allclose(c_.detach().numpy(), c.numpy(), atol=1e-5, rtol=1e-5)
@@ -311,11 +297,11 @@ def test_language_model_implementation(
 ):
     # TODO add test for just nn.embedding?
     x = np.random.randint(0, output_size, (seq_length, batch_size)).astype(np.float32)
-    h0 = ndl.Tensor(
+    h0 = sm.Tensor(
         np.random.randn(num_layers, batch_size, hidden_size).astype(np.float32),
         device=device,
     )
-    c0 = ndl.Tensor(
+    c0 = sm.Tensor(
         np.random.randn(num_layers, batch_size, hidden_size).astype(np.float32),
         device=device,
     )
@@ -328,9 +314,9 @@ def test_language_model_implementation(
             h = (h0, c0)
         elif seq_model == "rnn":
             h = h0
-        output, h_ = model(ndl.Tensor(x, device=device), h)
+        output, h_ = model(sm.Tensor(x, device=device), h)
     else:
-        output, h_ = model(ndl.Tensor(x, device=device), None)
+        output, h_ = model(sm.Tensor(x, device=device), None)
 
     if seq_model == "lstm":
         assert isinstance(h_, tuple)
@@ -349,7 +335,7 @@ def test_language_model_implementation(
 @pytest.mark.skip(reason="TODO: implement the train loop for the language models")
 @pytest.mark.parametrize("device", _DEVICES, ids=["cpu", "cuda"])
 def test_language_model_training(device):
-    corpus = ndl.data.Corpus("data/ptb", max_lines=20)
+    corpus = sm.data.Corpus("data/ptb", max_lines=20)
     seq_len = 10
     num_examples = 100
     batch_size = 16
@@ -357,7 +343,7 @@ def test_language_model_training(device):
     num_layers = 2
     hidden_size = 10
     n_epochs = 2
-    train_data = ndl.data.batchify(
+    train_data = sm.data.batchify(
         corpus.train, batch_size=batch_size, device=device, dtype="float32"
     )
     model = LanguageModel(

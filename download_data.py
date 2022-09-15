@@ -9,6 +9,8 @@ DATA_DIR = CURRENT_DIR / "data"
 DATA_DIR.mkdir(exist_ok=True)
 PTB_DIR = DATA_DIR / "ptb"
 PTB_DIR.mkdir(exist_ok=True)
+IMAGES_DIR = DATA_DIR / "images"
+IMAGES_DIR.mkdir(exist_ok=True)
 CIFAR_DIR = DATA_DIR / "cifar-10-batches-py"
 
 PTB_URL = "https://raw.githubusercontent.com/wojzaremba/lstm/master/data/ptb."
@@ -26,3 +28,6 @@ if not CIFAR_DIR.is_dir():
     urllib.request.urlretrieve(CIFAR_URL, tar_path)
     with tarfile.open(tar_path) as tar:
         tar.extractall(DATA_DIR)
+
+CAMERAMAN_URL = "https://www.math.hkust.edu.hk/~masyleung/Teaching/CAS/MATLAB/image/images/cameraman.jpg"
+urllib.request.urlretrieve(CAMERAMAN_URL, IMAGES_DIR / "cameraman.jpg")

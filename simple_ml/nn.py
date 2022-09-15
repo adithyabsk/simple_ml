@@ -36,7 +36,7 @@ def _unpack_params(value: object) -> List[Tensor]:
 
 
 def _child_modules(value: object) -> List["Module"]:
-    ### BEGIN YOUR SOLUTION
+
     if isinstance(value, Module):
         return [value] + _child_modules(value._children())
     elif isinstance(value, dict):
@@ -51,7 +51,6 @@ def _child_modules(value: object) -> List["Module"]:
         return params
     else:
         return []
-    ### END YOUR SOLUTION
 
 
 class Module:
@@ -86,7 +85,6 @@ class Linear(Module):
         super().__init__()
         self.in_features = in_features
         self.out_features = out_features
-        ### BEGIN YOUR SOLUTION
         root_k = math.sqrt(1 / in_features)
         self.weight = Parameter(
             ops.zeros(shape=(in_features, out_features), dtype=dtype, device=device)
@@ -103,10 +101,8 @@ class Linear(Module):
             init.uniform(self.bias, low=-root_k, high=root_k)
         else:
             self.bias = None
-        ### END YOUR SOLUTION
 
     def forward(self, x: Tensor) -> Tensor:
-        ### BEGIN YOUR SOLUTION
         y = x @ self.weight
         if self.bias is not None:
             bias_shape = [1] * len(y.shape)
@@ -115,7 +111,6 @@ class Linear(Module):
             bias = self.bias.reshape(bias_shape).broadcast_to(y.shape)
             y = y + bias
         return y
-        ### END YOUR SOLUTION
 
 
 class ReLU(Module):
@@ -123,9 +118,8 @@ class ReLU(Module):
         super().__init__()
 
     def forward(self, x: Tensor) -> Tensor:
-        ### BEGIN YOUR SOLUTION
+
         return ops.relu(x)
-        ### END YOUR SOLUTION
 
 
 class Tanh(Module):
@@ -133,9 +127,8 @@ class Tanh(Module):
         super().__init__()
 
     def forward(self, x: Tensor) -> Tensor:
-        ### BEGIN YOUR SOLUTION
+
         return ops.tanh(x)
-        ### END YOUR SOLUTION
 
 
 class Sigmoid(Module):
@@ -143,9 +136,8 @@ class Sigmoid(Module):
         super().__init__()
 
     def forward(self, x: Tensor) -> Tensor:
-        ### BEGIN YOUR SOLUTION
+
         return (ops.exp(-x) + 1.0) ** (-1)
-        ### END YOUR SOLUTION
 
 
 class Sequential(Module):
@@ -154,11 +146,10 @@ class Sequential(Module):
         self.modules = modules
 
     def forward(self, x: Tensor) -> Tensor:
-        ### BEGIN YOUR SOLUTION
+
         return reduce(
             lambda layer_input, layer: layer.forward(layer_input), [x, *self.modules]
         )
-        ### END YOUR SOLUTION
 
 
 class SoftmaxLoss(Module):
@@ -166,7 +157,7 @@ class SoftmaxLoss(Module):
         super().__init__()
 
     def forward(self, x: Tensor, y: Tensor):
-        ### BEGIN YOUR SOLUTION
+
         n_classes = x.shape[-1]
         sm = -(
             ops.one_hot(y, num_classes=n_classes, device=x.device, dtype=x.dtype)
@@ -177,7 +168,6 @@ class SoftmaxLoss(Module):
         numer = sm.sum(axes=0)
 
         return numer / sm.size
-        ### END YOUR SOLUTION
 
 
 class BatchNorm(Module):
@@ -186,7 +176,7 @@ class BatchNorm(Module):
         self.dim = dim
         self.eps = eps
         self.momentum = momentum
-        ### BEGIN YOUR SOLUTION
+
         # raise NotImplementedError()
         self.device = device
         self.dtype = dtype
@@ -196,10 +186,9 @@ class BatchNorm(Module):
         self.bias = Parameter(ops.zeros_like(self.weight, device=self.device))
         self.running_mean = ops.zeros_like(self.weight, device=self.device)
         self.running_var = ops.ones_like(self.weight, device=self.device)
-        ### END YOUR SOLUTION
 
     def forward(self, x: Tensor) -> Tensor:
-        ### BEGIN YOUR SOLUTION
+
         # raise NotImplementedError()
         original_shape = x.shape
         if len(x.shape) == 2:
@@ -243,7 +232,6 @@ class BatchNorm(Module):
         )
         result = (w_broad * x_d) / sigma + b_broad
         return result.reshape(original_shape)
-        ### END YOUR SOLUTION
 
 
 # class BatchNorm(Module):
@@ -252,12 +240,12 @@ class BatchNorm(Module):
 #         self.dim = dim
 #         self.eps = eps
 #         self.momentum = momentum
-#         ### BEGIN YOUR SOLUTION
+#
 #         self.weight = Parameter(ops.ones(shape=(dim,), dtype=dtype, device=device))
 #         self.bias = Parameter(ops.zeros(shape=(dim,), dtype=dtype, device=device))
 #         self.running_mean = ops.zeros(shape=(dim,), dtype=dtype, device=device)
 #         self.running_var = ops.ones(shape=(dim,), dtype=dtype, device=device)
-#         ### END YOUR SOLUTION
+#
 
 #     def get_dims_and_sum_dims(self, x: Tensor) -> Tuple:
 #         dims = list(x.shape)
@@ -294,7 +282,7 @@ class BatchNorm(Module):
 #         return ops.broadcast_to(ops.reshape(x, shape=new_shape), shape=shape)
 
 #     def forward(self, x: Tensor) -> Tensor:
-#         ### BEGIN YOUR SOLUTION
+#
 #         if self.training:
 #             exp_val = self.expectation(x)
 #             # E((x-E(x))^2)
@@ -329,7 +317,7 @@ class BatchNorm(Module):
 #         # https://forum.dlsyscourse.org/t/tiny-numerical-error-in-batchnorm/417/2?u=adithya
 #         y = y + self.match_output_shape(self.bias, shape=y.shape)
 #         return y
-#         ### END YOUR SOLUTION
+#
 
 
 class LayerNorm(Module):
@@ -337,10 +325,9 @@ class LayerNorm(Module):
         super().__init__()
         self.dims = dims if isinstance(dims, tuple) else (dims,)
         self.eps = eps
-        ### BEGIN YOUR SOLUTION
+
         self.weight = Parameter(ops.ones(shape=self.dims, dtype=dtype, device=device))
         self.bias = Parameter(ops.zeros(shape=self.dims, dtype=dtype, device=device))
-        ### END YOUR SOLUTION
 
     def expectation(self, x: Tensor) -> Tensor:
         dim_len = len(self.dims)
@@ -353,7 +340,7 @@ class LayerNorm(Module):
         )
 
     def forward(self, x: Tensor) -> Tensor:
-        ### BEGIN YOUR SOLUTION
+
         exp_val = self.expectation(x)
         # E((x-E(x))^2)
         var_val = self.expectation((x - self.expectation(x)) ** 2)
@@ -365,7 +352,6 @@ class LayerNorm(Module):
         y = y * self.weight.reshape(new_shape).broadcast_to(y.shape)
         y = y + self.bias.reshape(new_shape).broadcast_to(y.shape)
         return y
-        ### END YOUR SOLUTION
 
 
 class Dropout(Module):
@@ -374,7 +360,7 @@ class Dropout(Module):
         self.p = drop_prob
 
     def forward(self, x: Tensor) -> Tensor:
-        ### BEGIN YOUR SOLUTION
+
         if self.training:
             drop_mat = ops.randb(x.shape, p=(1 - self.p), device=x.device)
             ret_arr = x * drop_mat
@@ -382,7 +368,6 @@ class Dropout(Module):
             return ret_arr
         else:
             return x
-        ### END YOUR SOLUTION
 
 
 class Residual(Module):
@@ -391,9 +376,8 @@ class Residual(Module):
         self.fn = fn
 
     def forward(self, x: Tensor) -> Tensor:
-        ### BEGIN YOUR SOLUTION
+
         return x + self.fn(x).broadcast_to(x.shape)
-        ### END YOUR SOLUTION
 
 
 class Identity(Module):
@@ -443,7 +427,6 @@ class Conv(Module):
         self.out_channels = out_channels
         self.kernel_size = kernel_size
         self.stride = stride
-        ### BEGIN YOUR SOLUTION
         self.weight = Parameter(
             ops.zeros(
                 shape=(kernel_size, kernel_size, in_channels, out_channels),
@@ -460,10 +443,8 @@ class Conv(Module):
             init.uniform(self.bias, low=-bias_interval, high=bias_interval)
         else:
             self.bias = None
-        ### END YOUR SOLUTION
 
     def forward(self, x: Tensor) -> Tensor:
-        ### BEGIN YOUR SOLUTION
         # NCHW --> NHWC
         x = x.permute((0, 2, 3, 1))
         # then we pad to make sure that input == output
@@ -480,7 +461,6 @@ class Conv(Module):
         # NHWC --> NCHW
         y = y.permute((0, 3, 1, 2))
         return y
-        ### END YOUR SOLUTION
 
 
 class Conv4(Conv):
@@ -515,7 +495,7 @@ class RNNCell(Module):
         Weights and biases are initialized from U(-sqrt(k), sqrt(k)) where k = 1/hidden_size
         """
         super().__init__()
-        ### BEGIN YOUR SOLUTION
+
         self.hidden_size = hidden_size
         self.dtype = dtype
         self.device = device
@@ -540,7 +520,6 @@ class RNNCell(Module):
             init.uniform(self.bias_ih, low=-sqrt_k, high=sqrt_k)
             init.uniform(self.bias_hh, low=-sqrt_k, high=sqrt_k)
         self.act = ReLU() if nonlinearity == "relu" else Tanh()
-        ### END YOUR SOLUTION
 
     def forward(self, X, h=None):
         """
@@ -553,7 +532,7 @@ class RNNCell(Module):
         h' of shape (bs, hidden_size): Tensor contianing the next hidden state
             for each element in the batch.
         """
-        ### BEGIN YOUR SOLUTION
+
         if h is None:
             h = ops.zeros(
                 shape=(X.shape[0], self.hidden_size),
@@ -580,7 +559,6 @@ class RNNCell(Module):
             h_prime = h_prime + bias_hh
 
         return self.act(h_prime)
-        ### END YOUR SOLUTION
 
 
 class RNN(Module):
@@ -616,7 +594,7 @@ class RNN(Module):
             of shape (hidden_size,).
         """
         super().__init__()
-        ### BEGIN YOUR SOLUTION
+
         self.num_layers = num_layers
         self.rnn_cells = [
             RNNCell(
@@ -638,7 +616,6 @@ class RNN(Module):
             )
             for i in range(num_layers)
         ]
-        ### END YOUR SOLUTION
 
     def forward(self, X, h0=None):
         """
@@ -652,7 +629,7 @@ class RNN(Module):
             (h_t) from the last layer of the RNN, for each t.
         h_n of shape (num_layers, bs, hidden_size) containing the final hidden state for each element in the batch.
         """
-        ### BEGIN YOUR SOLUTION
+
         outputs = []
         h_n = []
         seq_len = X.shape[0]
@@ -683,7 +660,6 @@ class RNN(Module):
         stacked_h_n = ops.stack(h_n, axis=0)
 
         return stacked_output, stacked_h_n
-        ### END YOUR SOLUTION
 
 
 class LSTMCell(Module):
@@ -707,7 +683,7 @@ class LSTMCell(Module):
         Weights and biases are initialized from U(-sqrt(k), sqrt(k)) where k = 1/hidden_size
         """
         super().__init__()
-        ### BEGIN YOUR SOLUTION
+
         self.hidden_size = hidden_size
         self.input_size = input_size
         self.bias = bias
@@ -733,7 +709,6 @@ class LSTMCell(Module):
             )
             init.uniform(self.bias_ih, low=-sqrt_k, high=sqrt_k)
             init.uniform(self.bias_hh, low=-sqrt_k, high=sqrt_k)
-        ### END YOUR SOLUTION
 
     def _inner_expression(self, X, h, W_ix, W_hx, b_ix, b_hx):
         inner_exp = X @ W_ix
@@ -772,7 +747,7 @@ class LSTMCell(Module):
         c' of shape (bs, hidden_size): Tensor containing the next cell state for each
             element in the batch.
         """
-        ### BEGIN YOUR SOLUTION
+
         if h is None:
             h0 = ops.zeros(
                 shape=(X.shape[0], self.hidden_size),
@@ -822,7 +797,6 @@ class LSTMCell(Module):
         h_prime = o * Tanh()(c_prime)
 
         return (h_prime, c_prime)
-        ### END YOUR SOLUTION
 
 
 class LSTM(Module):
@@ -856,7 +830,7 @@ class LSTM(Module):
         lstm_cells[k].bias_hh: The learnable hidden-hidden bias of the k-th layer,
             of shape (4*hidden_size,).
         """
-        ### BEGIN YOUR SOLUTION
+
         self.num_layers = num_layers
         self.input_size = input_size
         self.hidden_size = hidden_size
@@ -868,7 +842,6 @@ class LSTM(Module):
             )
             for i in range(num_layers)
         ]
-        ### END YOUR SOLUTION
 
     def forward(self, X, h=None):
         """
@@ -887,7 +860,7 @@ class LSTM(Module):
             h_n of shape (num_layers, bs, hidden_size) containing the final hidden state for each element in the batch.
             h_n of shape (num_layers, bs, hidden_size) containing the final hidden cell state for each element in the batch.
         """
-        ### BEGIN YOUR SOLUTION
+
         outputs = []
         h_n = []
         c_n = []
@@ -927,7 +900,6 @@ class LSTM(Module):
         stacked_c_n = ops.stack(c_n, axis=0)
 
         return stacked_output, (stacked_h_n, stacked_c_n)
-        ### END YOUR SOLUTION
 
 
 class Embedding(Module):
@@ -944,7 +916,7 @@ class Embedding(Module):
         weight - The learnable weights of shape (num_embeddings, embedding_dim)
             initialized from N(0, 1).
         """
-        ### BEGIN YOUR SOLUTION
+
         self.num_embeddings = num_embeddings
         self.embedding_dim = embedding_dim
         self.dtype = dtype
@@ -953,7 +925,6 @@ class Embedding(Module):
             ops.zeros(shape=(num_embeddings, embedding_dim), dtype=dtype, device=device)
         )
         init.normal(self.weight)
-        ### END YOUR SOLUTION
 
     def forward(self, x: Tensor) -> Tensor:
         """
@@ -965,7 +936,7 @@ class Embedding(Module):
         Output:
         output of shape (seq_len, bs, embedding_dim)
         """
-        ### BEGIN YOUR SOLUTION
+
         hot_stack = []
         for s in range(x.shape[0]):
             hot_stack.append(
@@ -982,4 +953,3 @@ class Embedding(Module):
         )
 
         return x_one_hot
-        ### END YOUR SOLUTION

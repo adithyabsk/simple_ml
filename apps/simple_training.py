@@ -1,15 +1,12 @@
-import sys
-
-sys.path.append("../python")
-
 import time
 
 import numpy as np
-from models import *  # noqa: F403
 from tqdm import tqdm
 
-import simple_ml as ndl
+import simple_ml as sm
 import simple_ml.nn as nn
+
+from .models import LanguageModel
 
 # TODO: Make these concrete imports instead of a star import
 
@@ -36,7 +33,7 @@ def epoch_general_cifar10(dataloader, model, loss_fn=None, opt=None):
     np.random.seed(4)
     if loss_fn is None:
         loss_fn = nn.SoftmaxLoss()
-    ### BEGIN YOUR SOLUTION
+
     # raise NotImplementedError()
     accs = []
     losses = []
@@ -58,7 +55,6 @@ def epoch_general_cifar10(dataloader, model, loss_fn=None, opt=None):
         losses.append(loss.numpy())
     model.train()
     return np.mean(accs), np.mean(losses)
-    ### END YOUR SOLUTION
 
 
 def train_cifar10(
@@ -66,7 +62,7 @@ def train_cifar10(
     train_dataloader,
     val_dataloader,
     n_epochs=1,
-    optimizer=ndl.optim.Adam,
+    optimizer=sm.optim.Adam,
     lr=0.001,
     weight_decay=0.001,
     loss_fn=nn.SoftmaxLoss,
@@ -88,7 +84,7 @@ def train_cifar10(
         avg_loss: average loss over dataset from last epoch of training
     """
     np.random.seed(4)
-    ### BEGIN YOUR SOLUTION
+
     # raise NotImplementedError()
     opt = optimizer(model.parameters(), lr=lr, weight_decay=weight_decay)
     t0 = time.time()
@@ -118,7 +114,6 @@ def train_cifar10(
         trajectories["elapsed_time"].append(elapsed_time)
 
     return train_acc, train_loss, trajectories
-    ### END YOUR SOLUTION
 
 
 def evaluate_cifar10(model, dataloader, loss_fn=nn.SoftmaxLoss):
@@ -135,10 +130,9 @@ def evaluate_cifar10(model, dataloader, loss_fn=nn.SoftmaxLoss):
         avg_loss: average loss over dataset
     """
     np.random.seed(4)
-    ### BEGIN YOUR SOLUTION
+
     # raise NotImplementedError()
     return epoch_general_cifar10(dataloader, model, loss_fn=loss_fn(), opt=None)
-    ### END YOUR SOLUTION
 
 
 ### PTB training ###
@@ -173,12 +167,12 @@ def epoch_general_ptb(
     np.random.seed(4)
     if loss_fn is None:
         loss_fn = nn.SoftmaxLoss()
-    ### BEGIN YOUR SOLUTION
+
     model.train()
     correct, total_loss = 0, 0
     i = 1
     for i in range(data.shape[0]):
-        X, y = ndl.data.get_batch(data, i, seq_len, device=device, dtype=dtype)
+        X, y = sm.data.get_batch(data, i, seq_len, device=device, dtype=dtype)
         out, _ = model(X)
         correct += np.sum(np.argmax(out.numpy(), axis=1) == y.numpy())
         loss = loss_fn(out, y)
@@ -187,7 +181,6 @@ def epoch_general_ptb(
         opt.step()
         i += 1
     return correct / (y.shape[0] * i), total_loss / (y.shape[0] * i)
-    ### END YOUR SOLUTION
 
 
 def train_ptb(
@@ -195,7 +188,7 @@ def train_ptb(
     data,
     seq_len=40,
     n_epochs=1,
-    optimizer=ndl.optim.SGD,
+    optimizer=sm.optim.SGD,
     lr=4.0,
     weight_decay=0.0,
     loss_fn=nn.SoftmaxLoss,
@@ -222,7 +215,7 @@ def train_ptb(
         avg_loss: average loss over dataset from last epoch of training
     """
     np.random.seed(4)
-    ### BEGIN YOUR SOLUTION
+
     loss = loss_fn()
     opt = optimizer(model.parameters(), lr=lr, weight_decay=weight_decay)
     for _ in range(n_epochs):
@@ -239,7 +232,6 @@ def train_ptb(
         # test_acc, test_loss = evaluate_ptb()
 
     return train_acc, train_loss
-    ### END YOUR SOLUTION
 
 
 def evaluate_ptb(
@@ -259,49 +251,48 @@ def evaluate_ptb(
         avg_loss: average loss over dataset
     """
     np.random.seed(4)
-    ### BEGIN YOUR SOLUTION
+
     model.eval()
     loss = loss_fn()
     correct, total_loss = 0, 0
     i = 1
     for i in range(data.shape[0]):
-        X, y = ndl.data.get_batch(data, i, seq_len, device=device, dtype=dtype)
+        X, y = sm.data.get_batch(data, i, seq_len, device=device, dtype=dtype)
         out, _ = model(X)
         correct += np.sum(np.argmax(out.numpy(), axis=1) == y.numpy())
         loss = loss_fn(out, y)
         total_loss += loss.data.numpy() * y.shape[0]
         i += 1
     return correct / (y.shape[0] * i), total_loss / (y.shape[0] * i)
-    ### END YOUR SOLUTION
 
 
 if __name__ == "__main__":
     ### For testing purposes
-    device = ndl.cpu()
-    # dataset = ndl.data.CIFAR10Dataset("../data/cifar-10-batches-py", train=True)
-    # dataloader = ndl.data.DataLoader(\
+    device = sm.cpu()
+    # dataset = sm.data.CIFAR10Dataset("../data/cifar-10-batches-py", train=True)
+    # dataloader = sm.data.DataLoader(\
     #          dataset=dataset,
     #          batch_size=128,
     #          shuffle=True,
-    #          collate_fn=ndl.data.collate_ndarray,
+    #          collate_fn=sm.data.collate_ndarray,
     #          drop_last=False,
     #          device=device,
     #          dtype="float32"
     #          )
     #
     # model = ResNet9(device=device, dtype="float32")
-    # train_cifar10(model, dataloader, n_epochs=10, optimizer=ndl.optim.Adam,
+    # train_cifar10(model, dataloader, n_epochs=10, optimizer=sm.optim.Adam,
     #       lr=0.001, weight_decay=0.001)
 
-    corpus = ndl.data.Corpus("../data/ptb")
+    corpus = sm.data.Corpus("../data/ptb")
     seq_len = 40
     batch_size = 16
     hidden_size = 100
-    train_data = ndl.data.batchify(
-        corpus.train, batch_size, device=ndl.cpu(), dtype="float32"
+    train_data = sm.data.batchify(
+        corpus.train, batch_size, device=sm.cpu(), dtype="float32"
     )
     # TODO: fix the noqa
     model = LanguageModel(  # noqa: F405
-        1, len(corpus.dictionary), hidden_size, num_layers=2, device=ndl.cpu()
+        1, len(corpus.dictionary), hidden_size, num_layers=2, device=sm.cpu()
     )
     train_ptb(model, train_data, seq_len, n_epochs=10)

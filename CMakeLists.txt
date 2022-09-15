@@ -1,8 +1,11 @@
 cmake_minimum_required(VERSION 3.15)
-project(needle C CXX)
+project(simple_ml C CXX)
 
 # In cmake 1.12 a new policy was added
 cmake_policy(SET CMP0074 NEW)
+
+# TODO: remove me
+SET(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # MacOS only
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -undefined dynamic_lookup")
@@ -46,7 +49,7 @@ pybind11_strip(ndarray_backend_cpu)
 # directly output to ffi folder
 set_target_properties(ndarray_backend_cpu
   PROPERTIES
-  LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/needle/backend_ndarray
+  LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/simple_ml/backend_ndarray
   CXX_VISIBILITY_PRESET "hidden"
 )
 
@@ -76,7 +79,7 @@ if(CUDA_FOUND)
   # directly output to ffi folder
   set_target_properties(ndarray_backend_cuda
     PROPERTIES
-    LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/needle/backend_ndarray
+    LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/simple_ml/backend_ndarray
     CXX_VISIBILITY_PRESET "hidden"
     CUDA_VISIBILITY_PRESET "hidden"
   )
@@ -102,7 +105,7 @@ if(OpenCL_FOUND)
 
   set_target_properties(ndarray_backend_opencl
     PROPERTIES
-    LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/needle/backend_ndarray
+    LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/simple_ml/backend_ndarray
     CXX_VISIBILITY_PRESET "hidden"
   )
 else()

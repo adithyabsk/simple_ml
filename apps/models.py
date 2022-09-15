@@ -1,20 +1,17 @@
 # noqa: E402
 # TODO: fix this noqa
 import operator
-import sys
 from functools import reduce
-
-sys.path.append("./python")
 
 import numpy as np
 
-import simple_ml as ndl
+import simple_ml as sm
 import simple_ml.nn as nn
 
 np.random.seed(0)
 
 
-class ConvBN(ndl.nn.Module):
+class ConvBN(sm.nn.Module):
     conv_layer = nn.Conv
 
     def __init__(self, in_channels, out_channels, kernel_size, stride, device):
@@ -33,12 +30,11 @@ class ConvBN4(ConvBN):
     conv_layer = nn.Conv4
 
 
-class ResNet9(ndl.nn.Module):
+class ResNet9(sm.nn.Module):
     convbn_layer = ConvBN
 
     def __init__(self, device=None, dtype="float32"):
         super().__init__()
-        ### BEGIN YOUR SOLUTION ###
         self.first_set = nn.Sequential(
             self.convbn_layer(3, 16, 7, 4, device), ConvBN(16, 32, 3, 2, device)
         )
@@ -59,10 +55,8 @@ class ResNet9(ndl.nn.Module):
             nn.ReLU(),
             nn.Linear(128, 10, device=device),
         )
-        ### END YOUR SOLUTION
 
     def forward(self, x):
-        ### BEGIN YOUR SOLUTION
         fs = self.first_set(x)
         ss = self.second_set(fs)
         r1 = ss + fs.broadcast_to(ss.shape)
@@ -70,7 +64,6 @@ class ResNet9(ndl.nn.Module):
         fos = self.fourth_set(ts)
         r2 = fos + ts.broadcast_to(fos.shape)
         return self.output(r2)
-        ### END YOUR SOLUTION
 
 
 class ResNet94(ResNet9):
@@ -88,13 +81,12 @@ class LangFlatten(nn.Module):
     def __init__(self):
         super().__init__()
 
-    def forward(self, x: "ndl.Tensor") -> "ndl.Tensor":
-        ### BEGIN YOUR SOLUTION
+    def forward(self, x: "sm.Tensor") -> "sm.Tensor":
+
         x_shape = x.shape
         flat_dims = reduce(operator.mul, x_shape[:-1])
         new_shape = (flat_dims, x_shape[-1])
         return x.reshape(new_shape)
-        ### END YOUR SOLUTION
 
 
 class LanguageModel(nn.Module):
@@ -120,7 +112,7 @@ class LanguageModel(nn.Module):
         num_layers: Number of layers in RNN or LSTM
         """
         super(LanguageModel, self).__init__()
-        ### BEGIN YOUR SOLUTION
+
         self.output_size = output_size
         self.embedding = nn.Embedding(
             output_size, embedding_size, device=device, dtype=dtype
@@ -148,7 +140,6 @@ class LanguageModel(nn.Module):
         )
         self.flat = LangFlatten()
         self.linear = nn.Linear(hidden_size, output_size, device=device, dtype=dtype)
-        ### END YOUR SOLUTION
 
     def forward(self, x, h=None):
         """
@@ -165,23 +156,22 @@ class LanguageModel(nn.Module):
         h of shape (num_layers, bs, hidden_size) if using RNN,
             else h is tuple of (h0, c0), each of shape (num_layers, bs, hidden_size)
         """
-        ### BEGIN YOUR SOLUTION
+
         emb = self.embedding(x)
         seq_out, h = self.seq_model(emb, h)
         flat_out = self.flat(seq_out)
         lin_out = self.linear(flat_out)
         return lin_out, h
-        ### END YOUR SOLUTION
 
 
 # if __name__ == "__main__":
 #     model = ResNet9()
-#     x = ndl.ops.randu((1, 32, 32, 3), requires_grad=True)
+#     x = sm.ops.randu((1, 32, 32, 3), requires_grad=True)
 #     model(x)
-#     cifar10_train_dataset = ndl.data.CIFAR10Dataset(
+#     cifar10_train_dataset = sm.data.CIFAR10Dataset(
 #         "data/cifar-10-batches-py", train=True
 #     )
-#     train_loader = ndl.data.DataLoader(
-#         cifar10_train_dataset, 128, ndl.cpu(), dtype="float32"
+#     train_loader = sm.data.DataLoader(
+#         cifar10_train_dataset, 128, sm.cpu(), dtype="float32"
 #     )
 #     print(dataset[1][0].shape)

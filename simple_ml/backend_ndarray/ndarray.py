@@ -242,7 +242,7 @@ class NDArray:
         #       I had to implement view based auto-compacting, I need to extend
         #       this functionality else where you can end up operating on a view
         #       https://numpy.org/doc/stable/reference/generated/numpy.reshape.html
-        ### BEGIN YOUR SOLUTION
+
         if self.view:
             self._init(self.compact())
 
@@ -274,7 +274,6 @@ class NDArray:
                 new_strides.append(_dim)
 
         return self.as_strided(new_shape, tuple(new_strides))
-        ### END YOUR SOLUTION
 
     def permute(self, new_axes):
         """
@@ -297,7 +296,6 @@ class NDArray:
             strides changed).
         """
 
-        ### BEGIN YOUR SOLUTION
         if len(new_axes) != len(self.shape):
             raise ValueError("new_axes dimensions does not match input axes dimensions")
         if set(new_axes) != set(range(len(self.shape))):
@@ -306,7 +304,6 @@ class NDArray:
         new_shape = tuple(map(self.shape.__getitem__, new_axes))
         new_strides = tuple(map(self.strides.__getitem__, new_axes))
         return self.as_strided(new_shape, new_strides)
-        ### END YOUR SOLUTION
 
     def broadcast_to(self, new_shape):
         """
@@ -328,7 +325,6 @@ class NDArray:
             point to the same memory as the original array.
         """
 
-        ### BEGIN YOUR SOLUTION
         if not all(e1 == e2 for e1, e2 in zip(self.shape, new_shape) if e1 != 1):
             raise ValueError(
                 f"cannot broadcast array of shape {self.shape} into {new_shape}"
@@ -339,7 +335,6 @@ class NDArray:
             for stride, shape in zip(self.strides, self.shape)
         )
         return self.as_strided(new_shape, new_strides)
-        ### END YOUR SOLUTION
 
     ### Get and set elements
 
@@ -388,8 +383,8 @@ class NDArray:
 
         Returns:
             NDArray: a new NDArray object corresponding to the selected
-            subset of elements.  As before, this should not copy memroy but just
-            manipulate the shape/strides/offset of the new array, referecing
+            subset of elements.  As before, this should not copy memory but just
+            manipulate the shape/strides/offset of the new array, referencing
             the same array as the original one.
         """
 
@@ -404,7 +399,6 @@ class NDArray:
         )
         assert len(proc_idxs) == self.ndim, "Need indexes equal to number of dimensions"
 
-        ### BEGIN YOUR SOLUTION
         # calculate shape
         shape = tuple(
             map(
@@ -446,7 +440,6 @@ class NDArray:
             device=self.device,
             handle=self._handle,
         )
-        ### END YOUR SOLUTION
 
     def __setitem__(self, idxs, other):
         """Set the values of a view into an array, using the same semantics
@@ -697,7 +690,7 @@ class NDArray:
 
         Note: compact() before returning.
         """
-        ### BEGIN YOUR SOLUTION
+
         if axes is None:
             axes = range(len(self.shape))
         offset = 0
@@ -715,7 +708,6 @@ class NDArray:
             handle=self._handle,
             offset=offset,
         ).compact()
-        ### END YOUR SOLUTION
 
     def pad(self, axes):
         """
@@ -723,7 +715,7 @@ class NDArray:
         which lists for _all_ axes the left and right padding amount, e.g.,
         axes = ( (0, 0), (1, 1), (0, 0)) pads the middle axis with a 0 on the left and right side.
         """
-        ### BEGIN YOUR SOLUTION
+
         shape_mods = map(sum, axes)
         new_shape = tuple(map(sum, zip(self.shape, shape_mods)))
         out = empty(new_shape, device=self.device)
@@ -734,7 +726,6 @@ class NDArray:
         ]
         out[tuple(slices)] = self[tuple(slice(None) for _ in range(len(self.shape)))]
         return out
-        ### END YOUR SOLUTION
 
 
 def array(a, dtype="float32", device=None):

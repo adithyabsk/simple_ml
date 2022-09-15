@@ -208,7 +208,7 @@ void debug_kernel_build(std::string source) {
   }
 }
 
-namespace needle {
+namespace simple_ml {
 namespace opencl {
 
 // CL_DEVICE_MAX_WORK_GROUP_SIZE = 4100
@@ -509,8 +509,6 @@ auto ewiseadd = cl::compatibility::make_kernel<cl::Buffer, cl::Buffer, cl::Buffe
 void EwiseAdd(OpenCLArray* a, OpenCLArray* b, OpenCLArray* out) {
   OpenCLDims dims(out->size);
   cl::EnqueueArgs eargs(dims.global, dims.local);
-
-  std::cout << "Max: " << CL_DEVICE_MAX_WORK_GROUP_SIZE << std::endl;
 
   try {
     ewiseadd(eargs, a->mem, b->mem, out->mem, (unsigned int)out->size).wait();
@@ -992,11 +990,11 @@ unsigned int C_out, unsigned int K, unsigned int stride) {
 //   throw std::runtime_error(GetOpenCLErrorInfo(err.err()));
 // }
 }  // namespace opencl
-}  // namespace needle
+}  // namespace simple_ml
 
 PYBIND11_MODULE(ndarray_backend_opencl, m) {
   namespace py = pybind11;
-  using namespace needle;
+  using namespace simple_ml;
   using namespace opencl;
 
   m.attr("__device_name__") = "opencl";
