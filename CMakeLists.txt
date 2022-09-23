@@ -8,17 +8,17 @@ cmake_policy(SET CMP0074 NEW)
 SET(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # MacOS only
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -undefined dynamic_lookup")
+# SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -undefined dynamic_lookup")
 
 # find correct version of Python
-execute_process(COMMAND python3.6-config --prefix
+execute_process(COMMAND python-config --prefix
   OUTPUT_VARIABLE Python_ROOT_DIR)
 SET(Python3_FIND_VIRTUALENV "FIRST")
 find_package(Python COMPONENTS Development Interpreter REQUIRED)
 include_directories(${Python_INCLUDE_DIRS})
 
 # find pybind
-execute_process(COMMAND python3.6 -m pybind11 --cmakedir
+execute_process(COMMAND python -m pybind11 --cmakedir
   RESULT_VARIABLE __pybind_exit_code
   OUTPUT_VARIABLE __pybind_path
   OUTPUT_STRIP_TRAILING_WHITESPACE)
